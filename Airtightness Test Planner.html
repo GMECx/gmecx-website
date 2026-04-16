@@ -1999,15 +1999,24 @@ document.addEventListener('keydown', e=>{
   }
 });
 
-// Show on first launch, then once every ATP_DONATION_DAYS days.
+// Show first on the 3rd launch, then once every ATP_DONATION_DAYS days.
+const ATP_DONATION_FIRST_SHOW_ON_LAUNCH = 3;
 (function maybeShowDonate(){
   try {
-    const key = 'atp_lastDonationPrompt';
-    const last = localStorage.getItem(key);
-    const now  = Date.now();
+    const key       = 'atp_lastDonationPrompt';
+    const countKey  = 'atp_launchCount';
+    const last      = localStorage.getItem(key);
+    const now       = Date.now();
+
+    // Count every launch so we can gate the first prompt.
+    const count = parseInt(localStorage.getItem(countKey) || '0', 10) + 1;
+    localStorage.setItem(countKey, String(count));
+
     let due = false;
-    if(!last){ due = true; }
-    else {
+    if(!last){
+      // Never prompted — wait until the Nth launch.
+      if(count >= ATP_DONATION_FIRST_SHOW_ON_LAUNCH) due = true;
+    } else {
       const elapsedDays = (now - parseInt(last, 10)) / (1000*60*60*24);
       if(elapsedDays >= ATP_DONATION_DAYS) due = true;
     }
