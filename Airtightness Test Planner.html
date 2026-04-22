@@ -70,6 +70,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Arial,sa
 #canvas.cur-pan{cursor:grab;}
 #canvas.cur-panning{cursor:grabbing;}
 #canvas.cur-crosshair{cursor:crosshair;}
+#canvas.cur-nwse{cursor:nwse-resize;}
 
 /* ── INLINE EDITOR ── */
 #inline-editor{
@@ -77,7 +78,11 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Arial,sa
   border:2px solid #9b27af;border-radius:5px;padding:3px 6px;
   box-shadow:0 2px 12px rgba(0,0,0,0.2);
 }
-#inline-input{border:none;outline:none;font-size:13px;font-family:'Segoe UI',Arial,sans-serif;min-width:110px;background:transparent;color:#1a1a2e;}
+#inline-editor .ie-row{display:flex;align-items:center;gap:4px;}
+#inline-editor .ie-row + .ie-row{margin-top:2px;}
+#inline-editor .ie-tag{font-size:10px;color:#666;font-weight:bold;min-width:52px;text-align:right;text-transform:uppercase;letter-spacing:.4px;}
+#inline-editor input{border:none;outline:none;font-size:13px;font-family:'Segoe UI',Arial,sans-serif;min-width:140px;background:transparent;color:#1a1a2e;}
+#inline-input{border:none;outline:none;font-size:13px;font-family:'Segoe UI',Arial,sans-serif;min-width:140px;background:transparent;color:#1a1a2e;}
 
 /* ── STATUS BAR ── */
 #status{
@@ -219,12 +224,6 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Arial,sa
       <line x1="5" y1="10" x2="11" y2="10" stroke="#a16207" stroke-width="1.5" stroke-linecap="round"/>
     </svg>
   </button>
-  <button class="tb-btn" data-tool="rfi" title="RFI / Issue Tag">
-    <svg width="22" height="22" viewBox="0 0 24 24">
-      <rect x="2" y="6" width="20" height="12" rx="3" fill="#ef4444"/>
-      <text x="12" y="15" font-size="8" fill="white" font-family="Arial" font-weight="bold" text-anchor="middle">RFI</text>
-    </svg>
-  </button>
   <button class="tb-btn" data-tool="key" title="Place Key / Legend">
     <svg width="22" height="22" viewBox="0 0 24 24">
       <rect x="2" y="3" width="20" height="18" rx="2" fill="white" stroke="#444" stroke-width="1.8"/>
@@ -233,6 +232,37 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Arial,sa
       <line x1="5" y1="12" x2="10" y2="12" stroke="#9b27af" stroke-width="1.8"/>
       <line x1="5" y1="16" x2="10" y2="16" stroke="#e53935" stroke-width="1.8"/>
       <line x1="5" y1="20" x2="10" y2="20" stroke="#2e7d32" stroke-width="1.8"/>
+    </svg>
+  </button>
+  <button class="tb-btn" data-tool="summary" title="Place Component Summary Table">
+    <svg width="22" height="22" viewBox="0 0 24 24">
+      <rect x="2" y="3" width="20" height="18" rx="2" fill="white" stroke="#444" stroke-width="1.8"/>
+      <rect x="2" y="3" width="20" height="5" fill="#1e2433"/>
+      <text x="12" y="7" font-size="3.4" fill="#fff" font-family="Arial" font-weight="bold" text-anchor="middle">SUMMARY</text>
+      <line x1="2"  y1="12" x2="22" y2="12" stroke="#bbb" stroke-width="0.6"/>
+      <line x1="2"  y1="15" x2="22" y2="15" stroke="#bbb" stroke-width="0.6"/>
+      <line x1="2"  y1="18" x2="22" y2="18" stroke="#bbb" stroke-width="0.6"/>
+      <line x1="9"  y1="8"  x2="9"  y2="21" stroke="#bbb" stroke-width="0.6"/>
+      <line x1="15" y1="8"  x2="15" y2="21" stroke="#bbb" stroke-width="0.6"/>
+    </svg>
+  </button>
+  <button class="tb-btn" data-tool="compass" title="Compass Rose (cardinal directions)">
+    <svg width="22" height="22" viewBox="0 0 24 24">
+      <!-- outer ring -->
+      <circle cx="12" cy="12" r="10" fill="#fff" stroke="#222" stroke-width="1.4"/>
+      <!-- N/S/E/W ticks -->
+      <line x1="12" y1="2"  x2="12" y2="5"  stroke="#222" stroke-width="1.4"/>
+      <line x1="12" y1="19" x2="12" y2="22" stroke="#222" stroke-width="1.4"/>
+      <line x1="2"  y1="12" x2="5"  y2="12" stroke="#222" stroke-width="1.4"/>
+      <line x1="19" y1="12" x2="22" y2="12" stroke="#222" stroke-width="1.4"/>
+      <!-- blower door body (rounded rect) -->
+      <rect x="8.5" y="6.5" width="7" height="11" rx="1.2" fill="#e53935" stroke="#7a1c1c" stroke-width="0.8"/>
+      <!-- fan circle -->
+      <circle cx="12" cy="12" r="2.2" fill="#fff" stroke="#7a1c1c" stroke-width="0.8"/>
+      <!-- fan blade hint -->
+      <circle cx="12" cy="12" r="0.8" fill="#7a1c1c"/>
+      <!-- N label -->
+      <text x="12" y="5.2" font-size="3.2" fill="#222" font-weight="bold" text-anchor="middle" font-family="Arial">N</text>
     </svg>
   </button>
   <div class="tb-sep"></div>
@@ -294,14 +324,17 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Arial,sa
 </div>
 
 <!-- Inline text editor -->
-<div id="inline-editor"><input id="inline-input" type="text" maxlength="40"></div>
+<div id="inline-editor">
+  <div class="ie-row" id="ie-row-1"><span class="ie-tag" id="ie-tag-1">Label</span><input id="inline-input" type="text" maxlength="40"></div>
+  <div class="ie-row" id="ie-row-2" style="display:none"><span class="ie-tag">Location</span><input id="inline-input-2" type="text" maxlength="40"></div>
+</div>
 
 <!-- Help / About modal -->
 <div id="help-overlay">
   <div id="help-box">
     <button id="help-close" title="Close">&times;</button>
     <h1 style="display:flex;align-items:center;gap:12px;"><svg width="36" height="36" viewBox="0 0 64 64" style="flex-shrink:0;" aria-hidden="true"><defs><filter id="hm-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.5"/></filter></defs><path d="M 10 30 L 32 10 L 54 30 L 54 54 L 10 54 Z" fill="#ff9800" filter="url(#hm-glow)" opacity=".9"/><path d="M 10 30 L 32 10 L 54 30 L 54 54 L 10 54 Z" fill="#ffffff"/><path d="M 10 30 L 32 10 L 54 30 L 54 54 L 10 54 Z" fill="#9b27af" fill-opacity="0.5" stroke="#5b21b6" stroke-width="2.5" stroke-linejoin="round"/></svg><span>Airtightness Test Planner — Help &amp; About</span></h1>
-    <p>Airtightness Test Planner is a free, single-file tool for preparing whole-building airtightness test plans from construction PDFs. Open a PDF: mark up the tested boundary, blower-door locations, interior and exterior reference tubes, temporary seal locations, and any notes or RFIs, then export a clean plan as a PNG or PDF.</p>
+    <p>Airtightness Test Planner is a free, single-file tool for preparing whole-building airtightness test plans from construction PDFs. Open a PDF: mark up the tested boundary, blower-door locations, interior and exterior reference tubes, temporary seal locations, and any notes, then export a clean plan as a PNG or PDF.</p>
 
     <h2>Getting started</h2>
     <p>Click <b>Open PDF</b> (or drop a file anywhere on the workspace). Multi-page PDFs load every page — use the <b>◀ ▶</b> arrows or PageUp/PageDown to move between them. Each page keeps its own annotations and undo history.</p>
@@ -313,7 +346,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Arial,sa
           <svg width="22" height="22" viewBox="0 0 24 24" fill="#4c3190"><path d="M4 0 L4 20 L9 15 L12 22 L15 21 L12 14 L18 14 Z"/></svg>
           Select &amp; Move
         </td>
-        <td>Click to select; drag to reposition; double-click to edit text on manometers, callouts, and RFIs. Drag empty space to pan.</td>
+        <td>Click to select; drag to reposition; double-click to edit text on manometers and callouts. Drag empty space to pan.</td>
       </tr>
       <tr>
         <td class="tool-cell">
@@ -366,33 +399,41 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',Arial,sa
       </tr>
       <tr>
         <td class="tool-cell">
-          <svg width="22" height="22" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="3" fill="#ef4444"/><text x="12" y="15" font-size="8" fill="white" font-family="Arial" font-weight="bold" text-anchor="middle">RFI</text></svg>
-          RFI / Issue Tag
-        </td>
-        <td>Adds a red tag for open questions or field conditions that need clarification.</td>
-      </tr>
-      <tr>
-        <td class="tool-cell">
           <svg width="22" height="22" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="18" rx="2" fill="white" stroke="#444" stroke-width="1.8"/><line x1="2" y1="8" x2="22" y2="8" stroke="#444" stroke-width="1.5"/><text x="12" y="7" font-size="4" fill="#222" font-family="Arial" font-weight="bold" text-anchor="middle">KEY</text><line x1="5" y1="12" x2="10" y2="12" stroke="#9b27af" stroke-width="1.8"/><line x1="5" y1="16" x2="10" y2="16" stroke="#e53935" stroke-width="1.8"/><line x1="5" y1="20" x2="10" y2="20" stroke="#2e7d32" stroke-width="1.8"/></svg>
           Place Key / Legend
         </td>
-        <td>Drops a KEY legend box onto the plan, auto-populated with the symbols you've used. Drag it to wherever fits best.</td>
+        <td>Drops a KEY legend box onto the plan, auto-populated with the symbols you've used. Drag a corner to resize it.</td>
+      </tr>
+      <tr>
+        <td class="tool-cell">
+          <svg width="22" height="22" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="18" rx="2" fill="white" stroke="#444" stroke-width="1.8"/><rect x="2" y="3" width="20" height="5" fill="#1e2433"/><text x="12" y="7" font-size="3.4" fill="#fff" font-family="Arial" font-weight="bold" text-anchor="middle">SUMMARY</text><line x1="2" y1="12" x2="22" y2="12" stroke="#bbb" stroke-width="0.6"/><line x1="2" y1="15" x2="22" y2="15" stroke="#bbb" stroke-width="0.6"/><line x1="2" y1="18" x2="22" y2="18" stroke="#bbb" stroke-width="0.6"/><line x1="9" y1="8" x2="9" y2="21" stroke="#bbb" stroke-width="0.6"/><line x1="15" y1="8" x2="15" y2="21" stroke="#bbb" stroke-width="0.6"/></svg>
+          Place Component Summary
+        </td>
+        <td>Drops a spreadsheet-style summary table listing every labeled component on this page: manometers with their 4-channel port assignments (blank channels show as &ldquo;Ambient&rdquo;), fans, reference lines, and tested boundary — each with its label and location. Drag a corner to resize.</td>
+      </tr>
+      <tr>
+        <td class="tool-cell">
+          <svg width="22" height="22" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#fff" stroke="#222" stroke-width="1.4"/><rect x="8.5" y="6.5" width="7" height="11" rx="1.2" fill="#e53935" stroke="#7a1c1c" stroke-width="0.8"/><circle cx="12" cy="12" r="2.2" fill="#fff" stroke="#7a1c1c" stroke-width="0.8"/><text x="12" y="5.2" font-size="3.2" fill="#222" font-weight="bold" text-anchor="middle" font-family="Arial">N</text></svg>
+          Compass Rose
+        </td>
+        <td>Drops a compass rose with cardinal N/E/S/W labels and a blower-door icon at the center. Drag the orange tether handle to rotate N to match the plan's actual north (hold Shift for 15° snaps). Drag the corner to resize.</td>
       </tr>
     </table>
 
     <h2>Keyboard shortcuts</h2>
     <table>
-      <tr><td>Shift (hold)</td><td>Lock your in-progress drawing line to 0° / 90° from last point.</td></tr>
+      <tr><td>Shift (hold)</td><td>Lock your in-progress drawing line to 0° / 90° from last point. While rotating a compass rose, snaps rotation to 15° increments.</td></tr>
       <tr><td>Space (hold)</td><td>Pan the view while dragging.</td></tr>
       <tr><td>Scroll wheel</td><td>Zoom in / out, centered on the cursor.</td></tr>
       <tr><td>Esc</td><td>Cancel an in-progress line or boundary.</td></tr>
       <tr><td>Delete / Backspace</td><td>While drawing: remove the last point placed. Otherwise: delete the selected item.</td></tr>
       <tr><td>Ctrl+Z / Ctrl+Y</td><td>Undo / Redo (per page).</td></tr>
       <tr><td>PageUp / PageDown</td><td>Previous / next page.</td></tr>
+      <tr><td>1–0, C, S</td><td>Quick-switch tools: 1 select, 2 boundary, 3 fan, 4 ext ref, 5 int ref, 6 seal, 7 manometer, 8 callout, 0 key, S summary, C compass.</td></tr>
     </table>
 
     <h2>Exporting</h2>
-    <p><b>Export PNG</b> saves the current page as a high-resolution image with the auto-generated KEY legend. <b>Export PDF</b> writes every page into a single PDF file, ready to share with the client, GC, or field crew.</p>
+    <p><b>Export PNG</b> saves the current page as a high-resolution image, plus a separate <i>-component-summary.png</i> tabulating every labeled component (if any labels have been added). <b>Export PDF</b> writes every drawing page into a single PDF and automatically appends a Component Summary page at the end. Ready to share with the client, GC, or field crew.</p>
 
     <h2>About</h2>
     <p>Airtightness Test Planner was developed by <b>Green Mountain Enclosure Consulting LLC</b>. This app is designed for professional airtightness testers, building enclosure consultants, and commissioning agents. Your PDF never leaves your computer — all rendering and markup happens locally in the browser.</p>
@@ -918,8 +959,8 @@ const TOOL_HINTS = {
   seal      : 'Click & drag to draw temporary seal ellipse',
   manometer : 'Click to place manometer · Enter serial number',
   callout   : 'Click to place text callout · Drag the dot to reposition leader',
-  rfi       : 'Click to place RFI tag · Enter label',
   key       : 'Click to place a KEY / legend box on the plan',
+  summary   : 'Click to place a Component Summary table on the plan',
 };
 
 // ─────────────────────────────────────────
@@ -937,6 +978,7 @@ let tool = 'select';
 let annotations = [];
 let connections  = [];   // {lineId, ep:0|last, manoId, portKey}  — ep=0 means first point, ep=-1 means last
 let selected = null;
+let hoveredId = null;   // Annotation currently under the cursor — used to gate hover-only label chips
 
 // Polyline / boundary drawing state
 let drawing   = false;
@@ -958,6 +1000,17 @@ let connSnapshot = null;
 let dragHandle   = -1;      // vertex index being dragged (-1 = full body drag)
 let dragLeader   = false;   // dragging callout leader dot
 
+// Resize state (manometer / key / compass corner drag)
+let resizingAnn    = null;
+let resizeOrig     = null;   // snapshot of {x,y,w,h} or {cx,cy,r}
+let resizeStart    = null;   // PDF coords at drag start
+let resizeLineSnaps= {};     // {id: {points:[...]}} for connected lines at manometer resize start
+
+// Compass rotation state
+let rotatingAnn    = null;
+let rotateOrig     = 0;      // original rot value
+let rotateStartAng = 0;      // angle from center to mouse at drag start
+
 // Pan state
 let panning  = false;
 let panStart = {x:0,y:0};
@@ -972,6 +1025,7 @@ let edgePanVx = 0, edgePanVy = 0;
 // Inline editing
 let editingId    = null;
 let editingField = null;
+let editingField2= null;
 
 // History
 let history = [];
@@ -986,10 +1040,18 @@ const canvasWrap  = document.getElementById('canvas-wrap');
 const fileInput   = document.getElementById('file-input');
 const inlineEditor= document.getElementById('inline-editor');
 const inlineInput = document.getElementById('inline-input');
+const inlineInput2= document.getElementById('inline-input-2');
+const ieRow2      = document.getElementById('ie-row-2');
+const ieTag1      = document.getElementById('ie-tag-1');
 const zoomDisplay = document.getElementById('zoom-display');
 const projectName = document.getElementById('project-name');
 const statusTool  = document.getElementById('status-tool');
 const statusHint  = document.getElementById('status-hint');
+
+// Device pixel ratio — used to back the canvas at higher resolution than the
+// CSS viewport so content stays crisp when zoomed out on HiDPI displays.
+// Refreshed whenever the canvas is resized (monitor change / zoom change).
+let dpr = window.devicePixelRatio || 1;
 
 // ─────────────────────────────────────────
 //  UTILS
@@ -1042,7 +1104,8 @@ function setZoom(newScale, cx, cy) {
 }
 function fitToWindow() {
   if(!pdfW||!pdfH) return;
-  const cw=canvas.width, ch=canvas.height;
+  // Work in CSS (logical) pixels — canvas.width/height are device pixels after DPR scaling.
+  const cw=canvas.width/dpr, ch=canvas.height/dpr;
   const s=Math.min((cw-40)/pdfW,(ch-40)/pdfH);
   scale=s;
   offX=-(cw/scale-pdfW)/2;
@@ -1088,10 +1151,10 @@ function findSnap(pdfX,pdfY) {
 //  ANNOTATION FACTORIES
 // ─────────────────────────────────────────
 function mkPolyline(type, points) {
-  return {id:uid(), type, points:points.map(p=>({...p}))};
+  return {id:uid(), type, points:points.map(p=>({...p})), label:'', location:''};
 }
 function mkBoundary(points) {
-  return {id:uid(), type:'boundary', points:points.map(p=>({...p}))};
+  return {id:uid(), type:'boundary', points:points.map(p=>({...p})), label:''};
 }
 function mkSeal(cx,cy,rx,ry) {
   return {id:uid(), type:'seal', cx, cy, rx:Math.abs(rx)||4, ry:Math.abs(ry)||4};
@@ -1099,15 +1162,58 @@ function mkSeal(cx,cy,rx,ry) {
 function mkManometer(x,y,serial) {
   return {id:uid(), type:'manometer', x, y, w:MANO_W, h:MANO_H, serial:serial||''};
 }
-function mkCallout(x,y,text,lx,ly) {
-  const w=130,h=42;
-  return {id:uid(), type:'callout', x, y, w, h, text:text||'Note', lx:lx??x+w/2, ly:ly??y+h+50};
+// Callout (Note) — resizable horizontally; height auto-fits the wrapped text.
+// sf = a.w / CALLOUT_W_DEFAULT drives text/padding so internals scale with
+// the box (and with zoom, since all values are in PDF space).
+const CALLOUT_W_DEFAULT = 130;
+const CALLOUT_W_MIN     = 60;
+const _measureCanvas = document.createElement('canvas');
+const _measureCtx    = _measureCanvas.getContext('2d');
+function getCalloutSF(a){ return (a.w||CALLOUT_W_DEFAULT)/CALLOUT_W_DEFAULT; }
+function getCalloutHeight(a){
+  const sf       = getCalloutSF(a);
+  const fontSize = 11*sf;
+  const lineH    = 14*sf;
+  const padX     = 5*sf;
+  const padY     = 5*sf;
+  const maxW     = Math.max(10, a.w - 2*padX);
+  _measureCtx.font = `${fontSize}px Arial`;
+  const words = (a.text||'').split(' ');
+  let line='', lines=0;
+  for(const word of words){
+    const test = line ? line+' '+word : word;
+    if(_measureCtx.measureText(test).width > maxW && line){
+      lines++; line = word;
+    } else {
+      line = test;
+    }
+  }
+  if(line) lines++;
+  return Math.max(1,lines)*lineH + 2*padY;
 }
-function mkRFI(x,y,label) {
-  return {id:uid(), type:'rfi', x, y, label:label||'RFI'};
+function mkCallout(x,y,text,lx,ly) {
+  const w=CALLOUT_W_DEFAULT;
+  const a = {id:uid(), type:'callout', x, y, w, h:0, text:text||'Note', lx:lx??x+w/2, ly:ly??y+50+42};
+  a.h = getCalloutHeight(a);
+  return a;
 }
 function mkKey(x,y) {
   return {id:uid(), type:'key', x, y, w:480, h:0};  // h computed at render
+}
+// Summary table annotation — spreadsheet-style list of labeled components.
+// Layout & content are driven by buildSummary() at render time, so it stays
+// live as the user edits labels/locations/connections.
+const SUMMARY_W_DEFAULT = 620;
+const SUMMARY_W_MIN     = 320;
+function mkSummary(x,y){
+  return {id:uid(), type:'summary', x, y, w:SUMMARY_W_DEFAULT, h:0};
+}
+// Compass rose — center (cx,cy), radius r (PDF units), rotation in radians
+// (rotation lets Nate align N with the actual north on the drawing).
+const COMPASS_R_DEFAULT = 60;
+const COMPASS_R_MIN     = 30;
+function mkCompass(cx,cy,r,rot){
+  return {id:uid(), type:'compass', cx, cy, r:r||COMPASS_R_DEFAULT, rot:rot||0};
 }
 
 // Computed key contents (which items to show, based on current annotations)
@@ -1121,14 +1227,262 @@ function getKeyItems(){
   if(types.has('seal'))      items.push({style:'dashed',color:'#e53935',w:2, label:'Temporary Seal Area'});
   if(types.has('manometer')) items.push({style:'box',  color:'#9b27af',fill:'#f3e5f5',label:'Manometer'});
   if(types.has('callout'))   items.push({style:'box',  color:'#f9a825',fill:'#fff9c4',label:'Text Callout'});
-  if(types.has('rfi'))       items.push({style:'badge',color:'#e53935',       label:'RFI / Issue Tag'});
   return items;
 }
 // Key dimensions in PDF pixels (not scaled by zoom)
+// These are the "reference" values at the default width of 480.
+// When the key is resized via its corner handle, everything inside scales by sf = a.w / 480.
 const KEY_HDR=48, KEY_ROW=34, KEY_PAD=14;
+const KEY_W_DEFAULT = 480;
+const KEY_W_MIN     = 240;
+function getKeySF(a){ return (a.w || KEY_W_DEFAULT) / KEY_W_DEFAULT; }
 function getKeyHeight(a){
   const items=getKeyItems();
-  return KEY_HDR + Math.max(items.length,1)*KEY_ROW + KEY_PAD;
+  const sf = getKeySF(a);
+  return (KEY_HDR + Math.max(items.length,1)*KEY_ROW + KEY_PAD) * sf;
+}
+
+// ─────────────────────────────────────────
+//  COMPONENT SUMMARY (spreadsheet-style table)
+//  Used both for the on-drawing "Summary" annotation and for the
+//  auto-generated extra page on PDF / second PNG on image export.
+// ─────────────────────────────────────────
+const PORT_LABELS = {
+  aInput: 'Ch A — Input',
+  aRef  : 'Ch A — Ref',
+  bInput: 'Ch B — Input',
+  bRef  : 'Ch B — Ref',
+};
+// Walk the current page's annotations + connections and build a
+// normalized object describing every labeled component.
+function buildSummary(anns, conns){
+  anns  = anns  || annotations;
+  conns = conns || connections;
+  const lineTypes = new Set(['fan','extRef','intRef']);
+  const manos = anns.filter(a => a.type==='manometer');
+  const manoRows = manos.map(m => {
+    const channels = Object.keys(PORTS).map(pk => {
+      const conn = conns.find(c => c.manoId===m.id && c.portKey===pk);
+      let txt = 'Ambient';
+      if(conn){
+        const line = anns.find(a => a.id===conn.lineId);
+        if(line){
+          const lbl = (line.label||'').trim();
+          txt = lbl ? lbl : '(unlabeled line)';
+        }
+      }
+      return {port: PORT_LABELS[pk], line: txt};
+    });
+    return {serial: (m.serial||'').trim() || '(no serial)', channels};
+  });
+  const fanRows    = anns.filter(a=>a.type==='fan')   .map(a=>({label:(a.label||'').trim(),location:(a.location||'').trim()}));
+  const extRows    = anns.filter(a=>a.type==='extRef').map(a=>({label:(a.label||'').trim(),location:(a.location||'').trim()}));
+  const intRows    = anns.filter(a=>a.type==='intRef').map(a=>({label:(a.label||'').trim(),location:(a.location||'').trim()}));
+  const boundRows  = anns.filter(a=>a.type==='boundary').map(a=>({label:(a.label||'').trim()}));
+  return {manos:manoRows, fans:fanRows, extRefs:extRows, intRefs:intRows, boundaries:boundRows};
+}
+// Any labeled content at all?
+function summaryHasContent(s){
+  s = s || buildSummary();
+  return s.manos.length || s.fans.length || s.extRefs.length || s.intRefs.length || s.boundaries.length;
+}
+
+// ── Summary layout constants, expressed at the reference width SUMMARY_W_DEFAULT.
+// Everything downstream scales by sf = a.w / SUMMARY_W_DEFAULT (for the annotation)
+// or sf = tableWidth / SUMMARY_W_DEFAULT (for the auto-generated page).
+const SUM_HDR       = 42;  // title bar height
+const SUM_SECT_HDR  = 26;  // section header height
+const SUM_ROW       = 22;  // table row height
+const SUM_COL_HDR   = 22;  // column-header row height
+const SUM_PAD       = 14;
+const SUM_GAP       = 10;  // gap between sections
+
+// Pre-compute how tall a summary would be at a given width.
+function getSummaryLayout(aOrSF){
+  const sf = typeof aOrSF === 'number' ? aOrSF : ((aOrSF.w||SUMMARY_W_DEFAULT)/SUMMARY_W_DEFAULT);
+  const s = buildSummary();
+  let h = SUM_HDR * sf + SUM_PAD * sf;  // title + top pad
+  let sections = 0;
+  if(s.manos.length){
+    // One header + one column-header row + 4 rows per mano
+    h += SUM_SECT_HDR*sf + SUM_COL_HDR*sf + s.manos.length*4*SUM_ROW*sf + SUM_GAP*sf;
+    sections++;
+  }
+  const lineSect = (rows)=>{
+    if(!rows.length) return 0;
+    return SUM_SECT_HDR*sf + SUM_COL_HDR*sf + rows.length*SUM_ROW*sf + SUM_GAP*sf;
+  };
+  h += lineSect(s.fans);
+  h += lineSect(s.extRefs);
+  h += lineSect(s.intRefs);
+  // Only include a Tested Boundary section if MORE than one boundary exists.
+  // A single boundary is the trivial case (the whole enclosure) and is not worth
+  // a row in the summary.
+  if(s.boundaries.length > 1){
+    h += SUM_SECT_HDR*sf + SUM_COL_HDR*sf + s.boundaries.length*SUM_ROW*sf + SUM_GAP*sf;
+  }
+  // Empty-state placeholder
+  if(!summaryHasContent(s)) h += SUM_ROW*2*sf;
+  return {h, sf, s};
+}
+function getSummaryHeight(a){
+  return getSummaryLayout(a).h;
+}
+
+// Render a summary table at (x,y) with width w. `sf` drives font/padding scale.
+// `ctx` may be the live canvas or an offscreen export canvas — this function
+// does not depend on the live `scale` (on-screen zoom) because coords are PDF-space.
+function drawSummaryTable(ctx, x, y, w, sf){
+  const L = getSummaryLayout(sf);
+  const s = L.s;
+  const h = L.h;
+  ctx.save();
+  // Card body + shadow
+  ctx.fillStyle='rgba(0,0,0,0.14)';
+  ctx.fillRect(x+5*sf, y+5*sf, w, h);
+  ctx.fillStyle='#ffffff';
+  ctx.strokeStyle='#222'; ctx.lineWidth = 1.8*sf;
+  ctx.fillRect(x,y,w,h); ctx.strokeRect(x,y,w,h);
+  // Title bar
+  ctx.fillStyle='#1e2433';
+  ctx.fillRect(x,y,w,SUM_HDR*sf);
+  ctx.fillStyle='#ffffff';
+  ctx.font=`bold ${18*sf}px Arial`;
+  ctx.textAlign='left'; ctx.textBaseline='middle';
+  ctx.fillText('PROJECT COMPONENT SUMMARY', x+14*sf, y+SUM_HDR*sf/2);
+
+  let cy = y + SUM_HDR*sf + SUM_PAD*sf;
+  const innerX = x + 10*sf;
+  const innerW = w - 20*sf;
+
+  function sectionHeader(title){
+    ctx.fillStyle='#ede7f6';
+    ctx.fillRect(innerX, cy, innerW, SUM_SECT_HDR*sf);
+    ctx.strokeStyle='#9b27af'; ctx.lineWidth=1.2*sf;
+    ctx.strokeRect(innerX, cy, innerW, SUM_SECT_HDR*sf);
+    ctx.fillStyle='#4a148c'; ctx.font=`bold ${12*sf}px Arial`;
+    ctx.textAlign='left'; ctx.textBaseline='middle';
+    ctx.fillText(title, innerX + 10*sf, cy + SUM_SECT_HDR*sf/2);
+    cy += SUM_SECT_HDR*sf;
+  }
+  function colHeader(cols){
+    // cols = [{label, widthFrac}]
+    ctx.fillStyle='#f5f5f7';
+    ctx.fillRect(innerX, cy, innerW, SUM_COL_HDR*sf);
+    ctx.strokeStyle='#ccc'; ctx.lineWidth=0.8*sf;
+    ctx.strokeRect(innerX, cy, innerW, SUM_COL_HDR*sf);
+    ctx.fillStyle='#333'; ctx.font=`bold ${10*sf}px Arial`;
+    ctx.textAlign='left'; ctx.textBaseline='middle';
+    let cx = innerX;
+    for(const c of cols){
+      ctx.fillText(c.label, cx + 8*sf, cy + SUM_COL_HDR*sf/2);
+      cx += c.widthFrac * innerW;
+    }
+    cy += SUM_COL_HDR*sf;
+  }
+  function row(cells, cols, opts){
+    opts = opts || {};
+    const rh = SUM_ROW*sf;
+    if(opts.zebra){
+      ctx.fillStyle='#fafafa';
+      ctx.fillRect(innerX, cy, innerW, rh);
+    }
+    ctx.strokeStyle='#eee'; ctx.lineWidth=0.6*sf;
+    ctx.beginPath(); ctx.moveTo(innerX, cy+rh); ctx.lineTo(innerX+innerW, cy+rh); ctx.stroke();
+    ctx.fillStyle='#1a1a2e';
+    ctx.textAlign='left'; ctx.textBaseline='middle';
+    let cx = innerX;
+    for(let i=0;i<cells.length;i++){
+      const cw = cols[i].widthFrac * innerW;
+      const val = cells[i]==null ? '' : String(cells[i]);
+      ctx.font = (opts.bold && i===0)
+        ? `bold ${11*sf}px Arial`
+        : (opts.italic ? `italic ${11*sf}px Arial` : `${11*sf}px Arial`);
+      if(opts.dim && val==='Ambient') ctx.fillStyle='#888';
+      else ctx.fillStyle='#1a1a2e';
+      // Clip text to column
+      const maxW = cw - 12*sf;
+      let text = val;
+      if(ctx.measureText(text).width > maxW){
+        while(text.length > 1 && ctx.measureText(text+'…').width > maxW) text = text.slice(0,-1);
+        text = text + '…';
+      }
+      ctx.fillText(text, cx + 8*sf, cy + rh/2);
+      cx += cw;
+    }
+    cy += rh;
+  }
+
+  // ── Manometers ──
+  if(s.manos.length){
+    sectionHeader('Manometers & Channel Assignments');
+    const cols = [
+      {label:'Serial',          widthFrac:0.22},
+      {label:'Channel',         widthFrac:0.28},
+      {label:'Connected Line',  widthFrac:0.50},
+    ];
+    colHeader(cols);
+    for(let mi=0; mi<s.manos.length; mi++){
+      const m = s.manos[mi];
+      for(let ci=0; ci<m.channels.length; ci++){
+        const c = m.channels[ci];
+        row([ci===0 ? m.serial : '', c.port, c.line], cols, {bold:true, dim:true, zebra:(mi%2===1)});
+      }
+    }
+    cy += SUM_GAP*sf;
+  }
+
+  const lineSection = (title, rows) => {
+    if(!rows.length) return;
+    sectionHeader(title);
+    const cols = [
+      {label:'Label',    widthFrac:0.42},
+      {label:'Location', widthFrac:0.58},
+    ];
+    colHeader(cols);
+    rows.forEach((r,i)=>{
+      row([r.label || '(unlabeled)', r.location || '—'], cols, {zebra:(i%2===1)});
+    });
+    cy += SUM_GAP*sf;
+  };
+  lineSection('Blower Door Fans',           s.fans);
+  lineSection('Exterior Envelope Reference Lines', s.extRefs);
+  lineSection('Interior Envelope Reference Lines', s.intRefs);
+
+  // Tested Boundary: only show when more than one exists — a single boundary
+  // is implied, not worth a row.
+  if(s.boundaries.length > 1){
+    sectionHeader('Tested Boundaries');
+    const cols = [{label:'Label', widthFrac:1.0}];
+    colHeader(cols);
+    s.boundaries.forEach((r,i)=>{
+      row([r.label || '(unlabeled)'], cols, {zebra:(i%2===1)});
+    });
+    cy += SUM_GAP*sf;
+  }
+
+  if(!summaryHasContent(s)){
+    ctx.fillStyle='#888'; ctx.font=`italic ${13*sf}px Arial`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('(No labeled components yet — add labels to populate the summary)',
+      x + w/2, cy + SUM_ROW*sf);
+  }
+
+  ctx.restore();
+  return h;
+}
+
+// Draws the placed summary annotation (wraps drawSummaryTable + handles selection
+// glow + resize handle). Caller passes the live ctx; sizes are in PDF space so
+// content stays sharp on screen and in export.
+function drawSummary(ctx, a, sel){
+  const sf = (a.w || SUMMARY_W_DEFAULT) / SUMMARY_W_DEFAULT;
+  ctx.save();
+  selGlow(ctx, sel);
+  const h = drawSummaryTable(ctx, a.x, a.y, a.w, sf);
+  a.h = h;
+  ctx.restore();
+  if(sel) drawResizeHandle(ctx, a.x + a.w, a.y + h);
 }
 
 // ─────────────────────────────────────────
@@ -1164,9 +1518,10 @@ function getBBox(a) {
     }
     case 'seal':      return {x:a.cx-a.rx,y:a.cy-a.ry,w:a.rx*2,h:a.ry*2};
     case 'manometer': return {x:a.x,y:a.y,w:a.w,h:a.h};
-    case 'callout':   return {x:a.x,y:a.y,w:a.w,h:a.h};
-    case 'rfi':       return {x:a.x-35/scale,y:a.y-12/scale,w:70/scale,h:24/scale};
+    case 'callout':   return {x:a.x,y:a.y,w:a.w,h:getCalloutHeight(a)};
     case 'key':       return {x:a.x,y:a.y,w:a.w,h:getKeyHeight(a)};
+    case 'summary':   return {x:a.x,y:a.y,w:a.w,h:getSummaryHeight(a)};
+    case 'compass':   return {x:a.cx-a.r,y:a.cy-a.r,w:a.r*2,h:a.r*2};
     default:          return {x:0,y:0,w:1,h:1};
   }
 }
@@ -1186,10 +1541,12 @@ function hitTest(a, px, py) {
       return Math.abs(d-1)<t/Math.min(a.rx,a.ry);
     }
     case 'manometer': return ptInRect(px,py,a.x,a.y,a.w,a.h);
-    case 'callout':   return ptInRect(px,py,a.x,a.y,a.w,a.h)||
-                             ptSegDist(px,py,a.x+a.w/2,a.y+a.h,a.lx,a.ly)<t;
-    case 'rfi':       return Math.hypot(px-a.x,py-a.y)<22/scale;
+    case 'callout': { const ch=getCalloutHeight(a);
+                      return ptInRect(px,py,a.x,a.y,a.w,ch)||
+                             ptSegDist(px,py,a.x+a.w/2,a.y+ch,a.lx,a.ly)<t; }
     case 'key':       return ptInRect(px,py,a.x,a.y,a.w,getKeyHeight(a));
+    case 'summary':   return ptInRect(px,py,a.x,a.y,a.w,getSummaryHeight(a));
+    case 'compass':   return Math.hypot(px-a.cx,py-a.cy) < a.r * 1.15;
   }
   return false;
 }
@@ -1246,20 +1603,117 @@ function selGlow(ctx,sel){
   if(sel){ctx.shadowColor='#ff9800';ctx.shadowBlur=10/scale;}
 }
 
+// Anchor for a line/polyline label: midpoint of the longest segment, with a
+// unit normal so the tag can sit slightly offset from the line itself.
+function lineLabelAnchor(a){
+  if(!a.points||a.points.length<2) return null;
+  let bestI=0,bestLen=-1;
+  for(let i=0;i<a.points.length-1;i++){
+    const p=a.points[i], q=a.points[i+1];
+    const len=Math.hypot(q.x-p.x,q.y-p.y);
+    if(len>bestLen){bestLen=len;bestI=i;}
+  }
+  const p=a.points[bestI], q=a.points[bestI+1];
+  const mx=(p.x+q.x)/2, my=(p.y+q.y)/2;
+  const dx=q.x-p.x, dy=q.y-p.y;
+  const L=Math.hypot(dx,dy)||1;
+  // Unit normal (left of direction of travel)
+  const nx=-dy/L, ny=dx/L;
+  return {x:mx, y:my, nx, ny};
+}
+
+// Shared label renderer for boundary/fan/extRef/intRef.
+// Renders a rounded white chip at the midpoint of the longest segment,
+// offset slightly along the segment normal so it doesn't sit on the line.
+// Only shown on hover — and never included in exports (labels are internal-only for now).
+function drawLineLabel(ctx,a,color){
+  const isExport = ctx.canvas !== canvas;
+  if(isExport) return;                 // labels are not exported
+  if(a.id !== hoveredId) return;       // only render when hovered
+  const hasLabel    = (a.label||'').trim().length>0;
+  const hasLocation = (a.location||'').trim().length>0;
+  if(!hasLabel && !hasLocation) return;
+  const anc=lineLabelAnchor(a);
+  if(!anc) return;
+  const exportMul = 1;
+  // Everything below is in PDF space; divide by scale so sizes are stable on screen.
+  const s = 1/scale;
+  const fsLabel = 13*s, fsLoc = 11*s;
+  const padX = 6*s, padY = 4*s, gapY = 2*s, radius = 4*s;
+  ctx.save();
+  ctx.font = `bold ${fsLabel}px Arial`;
+  const labelW = hasLabel ? ctx.measureText(a.label).width : 0;
+  ctx.font = `italic ${fsLoc}px Arial`;
+  const locW = hasLocation ? ctx.measureText(a.location).width : 0;
+  const w = Math.max(labelW, locW) + padX*2;
+  const lineH = hasLabel && hasLocation ? fsLabel + fsLoc + gapY : (hasLabel ? fsLabel : fsLoc);
+  const h = lineH + padY*2;
+  // Offset chip from line along the normal
+  const off = (h/2 + 8*s);
+  let cx = anc.x + anc.nx*off;
+  let cy = anc.y + anc.ny*off;
+  // Chip background
+  ctx.fillStyle = 'rgba(255,255,255,0.96)';
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5*exportMul*s;
+  const x = cx - w/2, y = cy - h/2;
+  if(ctx.roundRect){
+    ctx.beginPath(); ctx.roundRect(x,y,w,h,radius); ctx.fill(); ctx.stroke();
+  } else {
+    ctx.beginPath();
+    ctx.moveTo(x+radius,y);
+    ctx.lineTo(x+w-radius,y); ctx.quadraticCurveTo(x+w,y,x+w,y+radius);
+    ctx.lineTo(x+w,y+h-radius); ctx.quadraticCurveTo(x+w,y+h,x+w-radius,y+h);
+    ctx.lineTo(x+radius,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-radius);
+    ctx.lineTo(x,y+radius); ctx.quadraticCurveTo(x,y,x+radius,y);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+  }
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  let ty = y + padY;
+  if(hasLabel){
+    ctx.fillStyle = color;
+    ctx.font = `bold ${fsLabel}px Arial`;
+    ctx.fillText(a.label, cx, ty);
+    ty += fsLabel + gapY;
+  }
+  if(hasLocation){
+    ctx.fillStyle = '#333';
+    ctx.font = `italic ${fsLoc}px Arial`;
+    ctx.fillText(a.location, cx, ty);
+  }
+  ctx.restore();
+}
+
 function drawBoundary(ctx,a,sel){
   if(!a.points||a.points.length<2) return;
+  // In export, the offscreen canvas is much larger (PDF native pixels), so a
+  // blur expressed in screen pixels (`14/scale` etc) ends up invisible. Fall
+  // back to blur proportional to the canvas width so the yellow glow reads
+  // the same as it does on screen.
+  const isExport = ctx.canvas !== canvas;
+  const glowMain = isExport
+    ? Math.max(ctx.canvas.width * 0.012, 24)
+    : (sel ? 14 : 6) / scale;
+  const glowSecondary = isExport
+    ? Math.max(ctx.canvas.width * 0.007, 14)
+    : 4 / scale;
   ctx.save();
   ctx.strokeStyle='#9b27af'; ctx.lineWidth=3.5/scale; ctx.lineJoin='round'; ctx.lineCap='round';
   // Always-on orange glow so closed boundaries stay visible; stronger when selected
   ctx.shadowColor='#ff9800';
-  ctx.shadowBlur= sel ? 14/scale : 6/scale;
+  ctx.shadowBlur= glowMain;
   ctx.beginPath();
   ctx.moveTo(a.points[0].x,a.points[0].y);
   for(let i=1;i<a.points.length;i++) ctx.lineTo(a.points[i].x,a.points[i].y);
   ctx.closePath(); ctx.stroke();
   // Second pass to intensify glow without thickening the line
   if(!sel){
-    ctx.shadowBlur=4/scale;
+    ctx.shadowBlur=glowSecondary;
+    ctx.stroke();
+  }
+  // Third pass on export only — thicker glow lays down enough pixels to survive JPEG compression
+  if(isExport){
+    ctx.shadowBlur=glowMain * 1.4;
     ctx.stroke();
   }
   if(sel){
@@ -1267,13 +1721,18 @@ function drawBoundary(ctx,a,sel){
     for(const p of a.points){ctx.beginPath();ctx.arc(p.x,p.y,5/scale,0,Math.PI*2);ctx.fill();}
   }
   ctx.restore();
+  drawLineLabel(ctx,a,'#9b27af');
 }
 
 function drawPolyline(ctx,a,sel){
   if(!a.points||a.points.length<2) return;
   const colors={fan:'#e53935',extRef:'#2e7d32',intRef:'#1565c0'};
   const widths ={fan:3.5,extRef:3.5,intRef:3.5};
-  const c=colors[a.type], lw=widths[a.type];
+  // In exported PNG/PDF, fan and reference lines appear as hairlines — double their
+  // stroke width so they read clearly at print scale.
+  const isExport = ctx.canvas !== canvas;
+  const exportMul = isExport ? 2 : 1;
+  const c=colors[a.type], lw=widths[a.type]*exportMul;
   ctx.save();
   ctx.strokeStyle=c; ctx.lineWidth=lw/scale; ctx.lineCap='round'; ctx.lineJoin='round';
   selGlow(ctx,sel);
@@ -1291,11 +1750,15 @@ function drawPolyline(ctx,a,sel){
     for(const p of a.points){ctx.beginPath();ctx.arc(p.x,p.y,5/scale,0,Math.PI*2);ctx.fill();}
   }
   ctx.restore();
+  const lineColors={fan:'#e53935',extRef:'#2e7d32',intRef:'#1565c0'};
+  drawLineLabel(ctx,a,lineColors[a.type]||'#333');
 }
 
 function drawSeal(ctx,a,sel){
+  const isExport = ctx.canvas !== canvas;
+  const exportMul = isExport ? 2 : 1;
   ctx.save();
-  ctx.strokeStyle='#e53935'; ctx.lineWidth=2.2/scale;
+  ctx.strokeStyle='#e53935'; ctx.lineWidth=3.5*exportMul/scale;
   ctx.setLineDash([6/scale,4/scale]);
   selGlow(ctx,sel);
   ctx.beginPath(); ctx.ellipse(a.cx,a.cy,a.rx,a.ry,0,0,Math.PI*2); ctx.stroke();
@@ -1303,69 +1766,111 @@ function drawSeal(ctx,a,sel){
   ctx.restore();
 }
 
+// Bottom-right corner resize handle for manometer/key.
+// Drawn in screen pixels (adjusted by scale) so it stays a consistent size
+// regardless of zoom level or annotation size. Skipped during export.
+const RESIZE_HANDLE_PX = 10;
+function drawResizeHandle(ctx, x, y){
+  if(ctx.canvas !== canvas) return;  // don't show in exports
+  const s = RESIZE_HANDLE_PX / scale;
+  ctx.save();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#ff9800';
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 1.5 / scale;
+  ctx.fillRect(x - s, y - s, s*2, s*2);
+  ctx.strokeRect(x - s, y - s, s*2, s*2);
+  // Diagonal grip lines
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 1.25 / scale;
+  ctx.beginPath();
+  ctx.moveTo(x - s*0.35, y + s*0.55); ctx.lineTo(x + s*0.55, y - s*0.35);
+  ctx.moveTo(x - s*0.55, y + s*0.15); ctx.lineTo(x + s*0.15, y - s*0.55);
+  ctx.stroke();
+  ctx.restore();
+}
+// Is point within the resize handle at (hx,hy)?  (PDF-space)
+function ptInResizeHandle(px, py, hx, hy){
+  const s = (RESIZE_HANDLE_PX + 3) / scale;  // +3 for easier grabbing
+  return px >= hx - s && px <= hx + s && py >= hy - s && py <= hy + s;
+}
+
 function drawManometer(ctx,a,sel){
   const {x,y,w,h,serial}=a;
+  // Size multiplier: scales internal text / ports / corners with the manometer's
+  // resized dimensions (default 1.0 at w=MANO_W, h=MANO_H).
+  const s = h / MANO_H;
+  // In exported PNG/PDF, manometer outlines and dividers appear as hairlines —
+  // double their stroke width at export time so they read clearly at print scale.
+  const isExport = ctx.canvas !== canvas;
+  const exportMul = isExport ? 2 : 1;
   ctx.save();
   selGlow(ctx,sel);
-  ctx.fillStyle='#f3e5f5'; ctx.strokeStyle='#9b27af'; ctx.lineWidth=2.5/scale;
-  roundRect(ctx,x,y,w,h,3/scale); ctx.fill(); ctx.stroke();
+  ctx.fillStyle='#f3e5f5'; ctx.strokeStyle='#9b27af'; ctx.lineWidth=2.5*exportMul/scale;
+  roundRect(ctx,x,y,w,h,3*s); ctx.fill(); ctx.stroke();
   ctx.shadowBlur=0;
   ctx.fillStyle='#e1bee7';
-  roundRect(ctx,x,y,w,h*0.28,[3/scale,3/scale,0,0]); ctx.fill();
-  ctx.strokeStyle='#9b27af'; ctx.lineWidth=1.5/scale;
+  roundRect(ctx,x,y,w,h*0.28,[3*s,3*s,0,0]); ctx.fill();
+  ctx.strokeStyle='#9b27af'; ctx.lineWidth=1.5*exportMul/scale;
   ctx.beginPath(); ctx.moveTo(x,y+h*0.28); ctx.lineTo(x+w,y+h*0.28); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(x+w*0.5,y+h*0.28); ctx.lineTo(x+w*0.5,y+h); ctx.stroke();
-  ctx.fillStyle='#4a148c'; ctx.font=`bold ${11/scale}px Arial`;
+  // Text is sized in PDF-space (like the manometer body) so it scales with
+  // both zoom and resize. Using /scale here would "lock" text to a fixed
+  // screen size and break proportions as you zoom.
+  ctx.fillStyle='#4a148c'; ctx.font=`bold ${11*s}px Arial`;
   ctx.textAlign='center'; ctx.textBaseline='middle';
   ctx.fillText(serial||'——————',x+w/2,y+h*0.15);
-  ctx.font=`bold ${13/scale}px Arial`;
+  ctx.font=`bold ${13*s}px Arial`;
   ctx.fillText('A',x+w*0.25,y+h*0.54);
   ctx.fillText('B',x+w*0.75,y+h*0.54);
-  // Port circles
-  ctx.fillStyle='white'; ctx.strokeStyle='#9b27af'; ctx.lineWidth=1.5/scale;
+  // Port circles — radius in PDF space so they scale with the manometer body
+  // (stroke width stays in screen px so the outline is consistent at any zoom)
+  ctx.fillStyle='white'; ctx.strokeStyle='#9b27af'; ctx.lineWidth=1.5*exportMul/scale;
   for(const pk of Object.keys(PORTS)){
     const pt=getPort(a,pk);
-    ctx.beginPath(); ctx.arc(pt.x,pt.y,5/scale,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(pt.x,pt.y,5*s,0,Math.PI*2); ctx.fill(); ctx.stroke();
   }
+  // Resize handle (bottom-right corner) when selected
+  if(sel) drawResizeHandle(ctx, x+w, y+h);
   ctx.restore();
 }
 
 function drawCallout(ctx,a,sel){
+  const sf = getCalloutSF(a);
+  const h  = getCalloutHeight(a);
+  // Keep a.h current so anything that reads it between renders is in sync.
+  a.h = h;
+  const padX = 5*sf, padY = 5*sf, lineH = 14*sf;
   ctx.save();
   selGlow(ctx,sel);
+  // Leader line + endpoint dot (stroke/dot in constant screen-px so always visible)
   ctx.strokeStyle='#f9a825'; ctx.lineWidth=2/scale; ctx.lineCap='round';
-  ctx.beginPath(); ctx.moveTo(a.x+a.w/2,a.y+a.h); ctx.lineTo(a.lx,a.ly); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(a.x+a.w/2,a.y+h); ctx.lineTo(a.lx,a.ly); ctx.stroke();
   ctx.fillStyle='#f9a825';
   ctx.beginPath(); ctx.arc(a.lx,a.ly,5/scale,0,Math.PI*2); ctx.fill();
   ctx.shadowBlur=0;
+  // Body (rounded box) — fill/size in PDF space so it scales with zoom and resize
   ctx.fillStyle='#fff9c4'; ctx.strokeStyle='#f9a825'; ctx.lineWidth=2/scale;
-  roundRect(ctx,a.x,a.y,a.w,a.h,4/scale); ctx.fill(); ctx.stroke();
-  ctx.fillStyle='#5d4037'; ctx.font=`${11/scale}px Arial`;
+  roundRect(ctx,a.x,a.y,a.w,h,4*sf); ctx.fill(); ctx.stroke();
+  // Text — PDF-space font so it scales with the box
+  ctx.fillStyle='#5d4037'; ctx.font=`${11*sf}px Arial`;
   ctx.textAlign='left'; ctx.textBaseline='top';
-  wrapText(ctx,a.text,a.w-10/scale,a.x+5/scale,a.y+5/scale,14/scale);
-  ctx.restore();
-}
-
-function drawRFI(ctx,a,sel){
-  ctx.save();
-  selGlow(ctx,sel);
-  const fw=70/scale, fh=22/scale, rx=a.x-fw/2, ry=a.y-fh/2;
-  ctx.fillStyle='#e53935';
-  roundRect(ctx,rx,ry,fw,fh,4/scale); ctx.fill();
-  ctx.fillStyle='white'; ctx.font=`bold ${11/scale}px Arial`;
-  ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillText(a.label,a.x,a.y);
+  wrapText(ctx,a.text,a.w-2*padX,a.x+padX,a.y+padY,lineH);
+  // Resize handle (BR corner) when selected
+  if(sel) drawResizeHandle(ctx, a.x+a.w, a.y+h);
   ctx.restore();
 }
 
 function drawKey(ctx,a,sel){
   const items=getKeyItems();
+  const sf = getKeySF(a);
   const h=getKeyHeight(a);
+  const hdr = KEY_HDR*sf, row = KEY_ROW*sf;
   ctx.save();
   selGlow(ctx,sel);
   // Shadow
   ctx.fillStyle='rgba(0,0,0,0.18)';
-  ctx.fillRect(a.x+6,a.y+6,a.w,h);
+  ctx.fillRect(a.x+6*sf, a.y+6*sf, a.w, h);
   ctx.shadowBlur=0;
   // Box
   ctx.fillStyle='#ffffff';
@@ -1375,50 +1880,224 @@ function drawKey(ctx,a,sel){
   ctx.strokeRect(a.x,a.y,a.w,h);
   ctx.shadowBlur=0;
   // Header divider
-  ctx.beginPath(); ctx.moveTo(a.x,a.y+KEY_HDR); ctx.lineTo(a.x+a.w,a.y+KEY_HDR); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(a.x,a.y+hdr); ctx.lineTo(a.x+a.w,a.y+hdr); ctx.stroke();
   // Title
-  ctx.fillStyle='#000'; ctx.font=`bold 22px Arial`;
+  ctx.fillStyle='#000'; ctx.font=`bold ${22*sf}px Arial`;
   ctx.textAlign='left'; ctx.textBaseline='middle';
-  ctx.fillText('KEY:', a.x+18, a.y+KEY_HDR/2);
+  ctx.fillText('KEY:', a.x+18*sf, a.y+hdr/2);
 
   if(!items.length){
-    ctx.fillStyle='#888'; ctx.font=`italic 14px Arial`;
+    ctx.fillStyle='#888'; ctx.font=`italic ${14*sf}px Arial`;
     ctx.textBaseline='middle';
-    ctx.fillText('(place annotations to populate)', a.x+18, a.y+KEY_HDR+KEY_ROW/2);
+    ctx.fillText('(place annotations to populate)', a.x+18*sf, a.y+hdr+row/2);
+    // Resize handle for selected key (bottom-right corner)
+    if(sel) drawResizeHandle(ctx, a.x+a.w, a.y+h);
     ctx.restore(); return;
   }
 
   items.forEach((item,i)=>{
-    const iy=a.y+KEY_HDR+(i+0.5)*KEY_ROW;
-    const sx=a.x+18, ex=a.x+78;
+    const iy=a.y+hdr+(i+0.5)*row;
+    const sx=a.x+18*sf, ex=a.x+78*sf;
     if(item.style==='line'||item.style==='dashed'){
-      ctx.strokeStyle=item.color; ctx.lineWidth=item.w; ctx.lineCap='round';
-      if(item.style==='dashed') ctx.setLineDash([7,4]);
+      ctx.strokeStyle=item.color; ctx.lineWidth=item.w*sf; ctx.lineCap='round';
+      if(item.style==='dashed') ctx.setLineDash([7*sf,4*sf]);
       // Tested boundary entry: add the signature orange glow
-      if(item.label==='Tested Boundary'){ ctx.shadowColor='#ff9800'; ctx.shadowBlur=10; }
+      if(item.label==='Tested Boundary'){ ctx.shadowColor='#ff9800'; ctx.shadowBlur=10*sf; }
       ctx.beginPath(); ctx.moveTo(sx,iy); ctx.lineTo(ex,iy); ctx.stroke();
       ctx.shadowBlur=0;
       ctx.setLineDash([]); ctx.lineCap='butt';
       if(item.arrow){
         ctx.fillStyle=item.color; ctx.beginPath();
-        ctx.moveTo(ex,iy); ctx.lineTo(ex-12,iy-5); ctx.lineTo(ex-12,iy+5); ctx.closePath(); ctx.fill();
+        ctx.moveTo(ex,iy); ctx.lineTo(ex-12*sf,iy-5*sf); ctx.lineTo(ex-12*sf,iy+5*sf); ctx.closePath(); ctx.fill();
       }
     } else if(item.style==='box'){
-      ctx.fillStyle=item.fill; ctx.strokeStyle=item.color; ctx.lineWidth=2;
-      ctx.fillRect(sx,iy-11,60,22); ctx.strokeRect(sx,iy-11,60,22);
-      ctx.fillStyle=item.color; ctx.font=`bold 10px Arial`; ctx.textAlign='center'; ctx.textBaseline='middle';
-      ctx.fillText(item.label==='Manometer'?'DG-1000':'Note',sx+30,iy);
-    } else if(item.style==='badge'){
-      ctx.fillStyle=item.color;
-      roundRect(ctx,sx,iy-11,60,22,4); ctx.fill();
-      ctx.fillStyle='white'; ctx.font=`bold 11px Arial`; ctx.textAlign='center'; ctx.textBaseline='middle';
-      ctx.fillText('RFI',sx+30,iy);
+      ctx.fillStyle=item.fill; ctx.strokeStyle=item.color; ctx.lineWidth=2*sf;
+      ctx.fillRect(sx,iy-11*sf,60*sf,22*sf); ctx.strokeRect(sx,iy-11*sf,60*sf,22*sf);
+      ctx.fillStyle=item.color; ctx.font=`bold ${10*sf}px Arial`; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(item.label==='Manometer'?'DG-1000':'Note',sx+30*sf,iy);
     }
-    ctx.fillStyle='#000'; ctx.font=`bold 15px Arial`;
+    ctx.fillStyle='#000'; ctx.font=`bold ${15*sf}px Arial`;
     ctx.textAlign='left'; ctx.textBaseline='middle';
-    ctx.fillText('=  '+item.label, a.x+92, iy);
+    ctx.fillText('=  '+item.label, a.x+92*sf, iy);
   });
+  // Resize handle (bottom-right corner) when selected
+  if(sel) drawResizeHandle(ctx, a.x+a.w, a.y+h);
   ctx.restore();
+}
+
+// ─────────────────────────────────────────
+// COMPASS ROSE
+// Cardinal direction indicator with a stylized blower door at the center.
+// Rotatable so N can be aligned with the drawing's actual north.
+// Renders in both working view and exported PNG/PDF.
+// ─────────────────────────────────────────
+function drawCompass(ctx,a,sel){
+  const {cx,cy,r}=a;
+  const rot = a.rot||0;
+  const isExport = ctx.canvas !== canvas;
+  const exportMul = isExport ? 2 : 1;
+  ctx.save();
+  selGlow(ctx,sel);
+
+  // Outer white circle (dial) with subtle shadow for legibility on dark plans
+  ctx.fillStyle='rgba(0,0,0,0.15)';
+  ctx.beginPath(); ctx.arc(cx+3/scale*exportMul, cy+3/scale*exportMul, r, 0, Math.PI*2); ctx.fill();
+  ctx.shadowBlur=0;
+  ctx.fillStyle='#ffffff';
+  ctx.strokeStyle='#222'; ctx.lineWidth=1.6*exportMul/scale;
+  ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill(); ctx.stroke();
+
+  // Rotate into compass frame so N points to -y after rotation by `rot`
+  ctx.translate(cx,cy);
+  ctx.rotate(rot);
+
+  // 8-point compass star (N/E/S/W = major, NE/SE/SW/NW = minor)
+  // Major points: long triangles alternating light/dark halves.
+  const r1 = r*0.95;  // tip
+  const r2 = r*0.18;  // inner notch
+  for(let i=0;i<4;i++){
+    const ang = (i*Math.PI/2) - Math.PI/2;  // start at top (N)
+    const tipX = Math.cos(ang)*r1, tipY = Math.sin(ang)*r1;
+    const leftX  = Math.cos(ang-Math.PI/2)*r2, leftY  = Math.sin(ang-Math.PI/2)*r2;
+    const rightX = Math.cos(ang+Math.PI/2)*r2, rightY = Math.sin(ang+Math.PI/2)*r2;
+    // Dark half of point
+    ctx.fillStyle = '#222';
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(tipX,tipY); ctx.lineTo(rightX,rightY); ctx.closePath(); ctx.fill();
+    // Light half of point
+    ctx.fillStyle = '#f0f0f0';
+    ctx.strokeStyle = '#222'; ctx.lineWidth = 0.8*exportMul/scale;
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(tipX,tipY); ctx.lineTo(leftX,leftY); ctx.closePath();
+    ctx.fill(); ctx.stroke();
+  }
+  // Minor points (NE/SE/SW/NW) — shorter, thinner
+  const r3 = r*0.55;
+  const r4 = r*0.10;
+  for(let i=0;i<4;i++){
+    const ang = (i*Math.PI/2) - Math.PI/4;
+    const tipX = Math.cos(ang)*r3, tipY = Math.sin(ang)*r3;
+    const leftX  = Math.cos(ang-Math.PI/2)*r4, leftY  = Math.sin(ang-Math.PI/2)*r4;
+    const rightX = Math.cos(ang+Math.PI/2)*r4, rightY = Math.sin(ang+Math.PI/2)*r4;
+    ctx.fillStyle = '#444';
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(tipX,tipY); ctx.lineTo(rightX,rightY); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#ddd';
+    ctx.strokeStyle = '#444'; ctx.lineWidth = 0.6*exportMul/scale;
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(tipX,tipY); ctx.lineTo(leftX,leftY); ctx.closePath();
+    ctx.fill(); ctx.stroke();
+  }
+
+  // Blower door at the center: rounded red rectangle with circular fan cutout.
+  const doorW = r*0.38, doorH = r*0.58;
+  const fanR  = r*0.18;
+
+  // Subtle GMEC-green backplate behind the blower door — a soft nod to the
+  // company logo without overpowering the existing graphic.
+  ctx.save();
+  const padX = doorW*0.28, padY = doorH*0.16;
+  const plW = doorW + padX*2, plH = doorH + padY*2;
+  // Soft outer glow (low-alpha green halo)
+  ctx.fillStyle = 'rgba(124,179,66,0.22)';
+  roundRect(ctx, -plW/2 - padX*0.35, -plH/2 - padY*0.35,
+                 plW + padX*0.70,     plH + padY*0.70,
+                 Math.min(plW,plH)*0.32);
+  ctx.fill();
+  // Main green backplate
+  ctx.fillStyle = 'rgba(104,159,56,0.55)';
+  ctx.strokeStyle = 'rgba(51,105,30,0.75)';
+  ctx.lineWidth = 1.0*exportMul/scale;
+  roundRect(ctx, -plW/2, -plH/2, plW, plH, Math.min(plW,plH)*0.22);
+  ctx.fill(); ctx.stroke();
+  ctx.restore();
+
+  ctx.save();
+  // Soft inner highlight ring
+  ctx.strokeStyle='#7a1c1c'; ctx.lineWidth=1.4*exportMul/scale;
+  ctx.fillStyle='#e53935';
+  roundRect(ctx, -doorW/2, -doorH/2, doorW, doorH, Math.min(doorW,doorH)*0.15);
+  ctx.fill(); ctx.stroke();
+  // Frame stiles (panel lines)
+  ctx.strokeStyle='rgba(0,0,0,0.25)'; ctx.lineWidth=0.8*exportMul/scale;
+  ctx.beginPath();
+  ctx.moveTo(-doorW/2 + doorW*0.1, -doorH/2 + doorH*0.08);
+  ctx.lineTo(-doorW/2 + doorW*0.1,  doorH/2 - doorH*0.08);
+  ctx.moveTo( doorW/2 - doorW*0.1, -doorH/2 + doorH*0.08);
+  ctx.lineTo( doorW/2 - doorW*0.1,  doorH/2 - doorH*0.08);
+  ctx.stroke();
+  // Fan body (white circle)
+  ctx.fillStyle='#fff'; ctx.strokeStyle='#7a1c1c'; ctx.lineWidth=1.2*exportMul/scale;
+  ctx.beginPath(); ctx.arc(0,0,fanR,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  // Fan blades (three swept teardrops)
+  ctx.fillStyle='#7a1c1c';
+  for(let i=0;i<3;i++){
+    const bAng = i*(Math.PI*2/3) - Math.PI/2;
+    ctx.save();
+    ctx.rotate(bAng);
+    ctx.beginPath();
+    ctx.moveTo(0,0);
+    ctx.quadraticCurveTo(fanR*0.55, -fanR*0.25, fanR*0.92, -fanR*0.05);
+    ctx.quadraticCurveTo(fanR*0.55,  fanR*0.05, 0, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+  // Hub
+  ctx.fillStyle='#222';
+  ctx.beginPath(); ctx.arc(0,0,fanR*0.20,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  // Cardinal letters positioned outside the star tips.
+  // They are NOT counter-rotated — user has rotated the rose so N is wherever
+  // north actually is on the drawing; letters ride along.
+  const labelR = r*1.06;
+  const letters = ['N','E','S','W'];
+  ctx.fillStyle = '#111';
+  ctx.font = `bold ${Math.max(12, r*0.26)}px Arial`;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  // Halo behind letters for legibility over drawings
+  for(let i=0;i<4;i++){
+    const ang = (i*Math.PI/2) - Math.PI/2;
+    const lx = Math.cos(ang)*labelR, ly = Math.sin(ang)*labelR;
+    // White halo
+    ctx.save();
+    ctx.lineWidth = 4*exportMul/scale;
+    ctx.strokeStyle = 'rgba(255,255,255,0.95)';
+    ctx.strokeText(letters[i], lx, ly);
+    ctx.restore();
+    // Highlight N in red to match the blower door theme
+    ctx.fillStyle = (i===0) ? '#b71c1c' : '#111';
+    ctx.fillText(letters[i], lx, ly);
+  }
+
+  ctx.restore();  // pops translate+rotate
+
+  // Rotation handle: small grip on the N tip (outside the dial) so Nate can
+  // drag to align N with the drawing's actual north.
+  if(sel && !isExport){
+    const ang = rot - Math.PI/2;
+    const hx = cx + Math.cos(ang)*(r*1.22);
+    const hy = cy + Math.sin(ang)*(r*1.22);
+    // Tether line
+    ctx.save();
+    ctx.strokeStyle='#ff9800'; ctx.lineWidth=1.4/scale; ctx.setLineDash([4/scale,3/scale]);
+    ctx.beginPath(); ctx.moveTo(cx+Math.cos(ang)*r, cy+Math.sin(ang)*r); ctx.lineTo(hx,hy); ctx.stroke();
+    ctx.setLineDash([]);
+    // Handle circle
+    ctx.fillStyle='#ff9800'; ctx.strokeStyle='#fff'; ctx.lineWidth=1.5/scale;
+    const hr = 7/scale;
+    ctx.beginPath(); ctx.arc(hx,hy,hr,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    // Tiny curved arrow inside handle
+    ctx.strokeStyle='#fff'; ctx.lineWidth=1.3/scale;
+    ctx.beginPath(); ctx.arc(hx,hy,hr*0.55, 0.3, Math.PI*1.5); ctx.stroke();
+    ctx.restore();
+  }
+
+  // Resize handle (bottom-right of bounding box) when selected
+  if(sel) drawResizeHandle(ctx, cx+r, cy+r);
+}
+// Compass rotation-handle position (PDF-space), used for hit testing.
+function getCompassRotHandle(a){
+  const ang = (a.rot||0) - Math.PI/2;
+  return {x: a.cx + Math.cos(ang)*(a.r*1.22),
+          y: a.cy + Math.sin(ang)*(a.r*1.22)};
 }
 
 function drawAnnotation(ctx,a,sel){
@@ -1428,8 +2107,9 @@ function drawAnnotation(ctx,a,sel){
     case 'seal':      drawSeal(ctx,a,sel); break;
     case 'manometer': drawManometer(ctx,a,sel); break;
     case 'callout':   drawCallout(ctx,a,sel); break;
-    case 'rfi':       drawRFI(ctx,a,sel); break;
     case 'key':       drawKey(ctx,a,sel); break;
+    case 'summary':   drawSummary(ctx,a,sel); break;
+    case 'compass':   drawCompass(ctx,a,sel); break;
   }
 }
 
@@ -1496,7 +2176,10 @@ function render(){
   ctx.fillStyle='#4a5068'; ctx.fillRect(0,0,W,H);
 
   ctx.save();
-  ctx.setTransform(scale,0,0,scale,-offX*scale,-offY*scale);
+  // Include dpr in the transform so PDF-space units map to CSS pixels on a
+  // HiDPI-backed canvas — lines and text stay crisp, and PDF bitmaps are
+  // downsampled from a much higher-resolution source at full zoom-out.
+  ctx.setTransform(scale*dpr,0,0,scale*dpr,-offX*scale*dpr,-offY*scale*dpr);
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
 
@@ -1522,13 +2205,18 @@ function render(){
 //  COMMIT HELPERS
 // ─────────────────────────────────────────
 function commitBoundary(){
+  let created=null;
   if(drawPts.length>=3){
     saveHistory();
-    const a=mkBoundary(drawPts);
-    annotations.push(a); selected=a.id;
+    created=mkBoundary(drawPts);
+    annotations.push(created); selected=created.id;
   }
   drawing=false; drawPts=[]; startSnap=null; render();
   setTool('select');
+  if(created){
+    const sc=lineLabelCanvasPos(created);
+    openEditor(created.id,'label',sc.x,sc.y,'',null,null,'Label');
+  }
 }
 
 function commitPolyline(){
@@ -1538,15 +2226,29 @@ function commitPolyline(){
     const last=drawPts[n-1], prev=drawPts[n-2];
     if(Math.hypot(last.x-prev.x,last.y-prev.y)<3/scale) drawPts.pop();
   }
+  let created=null;
   if(drawPts.length>=2){
     saveHistory();
-    const a=mkPolyline(tool,drawPts);
+    created=mkPolyline(tool,drawPts);
     if(startSnap)
-      connections.push({lineId:a.id,ep:0,manoId:startSnap.manoId,portKey:startSnap.portKey});
-    annotations.push(a); selected=a.id;
+      connections.push({lineId:created.id,ep:0,manoId:startSnap.manoId,portKey:startSnap.portKey});
+    annotations.push(created); selected=created.id;
   }
   drawing=false; drawPts=[]; startSnap=null; snapTarget=null; render();
   setTool('select');
+  if(created){
+    const sc=lineLabelCanvasPos(created);
+    openEditor(created.id,'label',sc.x,sc.y,'', 'location','', 'Label');
+  }
+}
+
+// Midpoint of a line/boundary in canvas coordinates, used to anchor the editor.
+function lineLabelCanvasPos(a){
+  if(!a.points||a.points.length<2) return {x:0,y:0};
+  let bx=0,by=0;
+  for(const p of a.points){ bx+=p.x; by+=p.y; }
+  bx/=a.points.length; by/=a.points.length;
+  return toCanvas(bx,by);
 }
 
 function cancelDrawing(){
@@ -1565,7 +2267,7 @@ function setTool(t){
   });
   const names={select:'Select',boundary:'Tested Boundary',fan:'Blower Door Fan',
     extRef:'Ext. Envelope Ref',intRef:'Int. Envelope Ref',seal:'Temp Seal',
-    manometer:'Manometer',callout:'Text Callout',rfi:'RFI Tag',key:'Place Key'};
+    manometer:'Manometer',callout:'Text Callout',key:'Place Key',summary:'Place Summary',compass:'Compass Rose'};
   statusTool.textContent=names[t]||t;
   statusHint.textContent=TOOL_HINTS[t]||'';
   canvas.className= t==='select'?'cur-select':'cur-crosshair';
@@ -1575,9 +2277,21 @@ function setTool(t){
 // ─────────────────────────────────────────
 //  INLINE EDITOR
 // ─────────────────────────────────────────
-function openEditor(annId,field,canvasX,canvasY,val){
-  editingId=annId; editingField=field;
-  inlineInput.value=val;
+// openEditor supports either single-field (legacy) or dual-field mode.
+// Signatures:
+//   openEditor(annId, field, canvasX, canvasY, val)                    — single
+//   openEditor(annId, field, canvasX, canvasY, val, field2, val2, tag1)— dual (field2/val2 optional 2nd field; tag1 overrides first-row label)
+function openEditor(annId,field,canvasX,canvasY,val,field2,val2,tag1){
+  editingId=annId; editingField=field; editingField2=field2||null;
+  ieTag1.textContent = tag1 || (field==='serial' ? 'Serial' : (field==='text' ? 'Note' : 'Label'));
+  inlineInput.value=val??'';
+  if(editingField2){
+    ieRow2.style.display='flex';
+    inlineInput2.value=val2??'';
+  } else {
+    ieRow2.style.display='none';
+    inlineInput2.value='';
+  }
   const cr=canvas.getBoundingClientRect();
   inlineEditor.style.left=(cr.left+canvasX)+'px';
   inlineEditor.style.top =(cr.top+canvasY-22)+'px';
@@ -1590,20 +2304,46 @@ function closeEditor(commit){
     const a=annotations.find(x=>x.id===editingId);
     if(a){
       saveHistory();
-      if(editingField==='serial') a.serial=inlineInput.value;
-      if(editingField==='text')   a.text  =inlineInput.value;
-      if(editingField==='label')  a.label =inlineInput.value;
+      const setField = (field, val) => {
+        if(field==='serial')   a.serial=val;
+        else if(field==='text')a.text=val;
+        else if(field==='label')a.label=val;
+        else if(field==='location')a.location=val;
+      };
+      setField(editingField, inlineInput.value);
+      if(editingField2) setField(editingField2, inlineInput2.value);
     }
   }
   inlineEditor.style.display='none';
-  editingId=null; editingField=null;
+  editingId=null; editingField=null; editingField2=null;
   render();
 }
-inlineInput.addEventListener('keydown',e=>{
-  if(e.key==='Enter') {closeEditor(true);e.preventDefault();}
-  if(e.key==='Escape'){closeEditor(false);e.preventDefault();}
-});
-inlineInput.addEventListener('blur',()=>closeEditor(true));
+// Tab/Enter/Escape behavior for both inputs
+function _ieKey(e, isFirst){
+  if(e.key==='Enter'){
+    if(isFirst && editingField2){ e.preventDefault(); inlineInput2.focus(); inlineInput2.select(); }
+    else { e.preventDefault(); closeEditor(true); }
+  } else if(e.key==='Escape'){
+    e.preventDefault(); closeEditor(false);
+  } else if(e.key==='Tab'){
+    if(editingField2){
+      e.preventDefault();
+      if(isFirst){ inlineInput2.focus(); inlineInput2.select(); }
+      else      { inlineInput.focus();  inlineInput.select();  }
+    }
+  }
+}
+inlineInput .addEventListener('keydown',e=>_ieKey(e,true));
+inlineInput2.addEventListener('keydown',e=>_ieKey(e,false));
+// Blur commits only when focus leaves the editor entirely (not when jumping between the two inputs).
+function _ieBlur(){
+  setTimeout(()=>{
+    const ae = document.activeElement;
+    if(ae!==inlineInput && ae!==inlineInput2) closeEditor(true);
+  },0);
+}
+inlineInput .addEventListener('blur',_ieBlur);
+inlineInput2.addEventListener('blur',_ieBlur);
 
 // ─────────────────────────────────────────
 //  DELETE
@@ -1628,6 +2368,7 @@ canvas.addEventListener('mouseup',   onMouseUp);
 canvas.addEventListener('dblclick',  onDblClick);
 canvas.addEventListener('wheel',     onWheel,{passive:false});
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
+canvas.addEventListener('mouseleave',()=>{ if(hoveredId){ hoveredId=null; render(); } });
 
 function onMouseDown(e){
   e.preventDefault();
@@ -1662,6 +2403,45 @@ function onMouseDown(e){
             saveHistory();
             dragHandle=i; dragAnn=sa; dragOrigin=pt; return;
           }
+        }
+      }
+      // Resize handle (BR corner) on selected manometer/key/compass/callout?
+      if(sa && (sa.type==='manometer' || sa.type==='key' || sa.type==='compass' || sa.type==='callout' || sa.type==='summary')){
+        let bx, by;
+        if(sa.type==='key'){ bx=sa.x+sa.w; by=sa.y+getKeyHeight(sa); }
+        else if(sa.type==='compass'){ bx=sa.cx+sa.r; by=sa.cy+sa.r; }
+        else if(sa.type==='callout'){ bx=sa.x+sa.w; by=sa.y+getCalloutHeight(sa); }
+        else if(sa.type==='summary'){ bx=sa.x+sa.w; by=sa.y+getSummaryHeight(sa); }
+        else { bx=sa.x+sa.w; by=sa.y+sa.h; }
+        if(ptInResizeHandle(pt.x, pt.y, bx, by)){
+          saveHistory();
+          resizingAnn = sa;
+          resizeOrig  = sa.type==='compass'
+            ? {cx:sa.cx, cy:sa.cy, r:sa.r}
+            : {x:sa.x, y:sa.y, w:sa.w, h:sa.h};
+          resizeStart = pt;
+          // Snapshot connected-line endpoints for manometer
+          resizeLineSnaps = {};
+          if(sa.type==='manometer'){
+            const connectedIds=[...new Set(connections.filter(c=>c.manoId===sa.id).map(c=>c.lineId))];
+            for(const lid of connectedIds){
+              const line=annotations.find(a=>a.id===lid);
+              if(line&&line.points) resizeLineSnaps[lid]={points:line.points.map(p=>({...p}))};
+            }
+          }
+          return;
+        }
+      }
+      // Rotation handle on selected compass?
+      if(sa && sa.type==='compass'){
+        const h = getCompassRotHandle(sa);
+        const hc = toCanvas(h.x, h.y);
+        if(Math.hypot(cv.x-hc.x, cv.y-hc.y) < 10){
+          saveHistory();
+          rotatingAnn    = sa;
+          rotateOrig     = sa.rot || 0;
+          rotateStartAng = Math.atan2(pt.y - sa.cy, pt.x - sa.cx);
+          return;
         }
       }
     }
@@ -1721,37 +2501,44 @@ function onMouseDown(e){
 
   // ── MANOMETER ──
   if(tool==='manometer'){
-    const a=mkManometer(pt.x-MANO_W/2,pt.y-MANO_H/2,'');
+    const a=mkManometer(pt.x-MANO_W/2,pt.y-MANO_H/2,'000467');
     saveHistory(); annotations.push(a); selected=a.id;
     setTool('select'); render();
     const sc=toCanvas(a.x+a.w/2,a.y+a.h*0.15);
-    openEditor(a.id,'serial',sc.x,sc.y,'');
+    openEditor(a.id,'serial',sc.x,sc.y,'000467',null,null,'Serial');
     return;
   }
 
   // ── CALLOUT ──
   if(tool==='callout'){
-    const a=mkCallout(pt.x-65,pt.y-21,'Note',pt.x,pt.y+80);
+    // Center the box on the click; height is auto-computed from text
+    const a = mkCallout(pt.x - CALLOUT_W_DEFAULT/2, pt.y - 12, 'Note', pt.x, pt.y + 80);
     saveHistory(); annotations.push(a); selected=a.id;
     setTool('select'); render();
-    const sc=toCanvas(a.x+4/scale,a.y+4/scale);
+    const sc=toCanvas(a.x+4, a.y+4);
     openEditor(a.id,'text',sc.x,sc.y,'Note');
-    return;
-  }
-
-  // ── RFI ──
-  if(tool==='rfi'){
-    const a=mkRFI(pt.x,pt.y,'RFI');
-    saveHistory(); annotations.push(a); selected=a.id;
-    setTool('select'); render();
-    const sc=toCanvas(a.x,a.y);
-    openEditor(a.id,'label',sc.x,sc.y,'RFI');
     return;
   }
 
   // ── KEY ──
   if(tool==='key'){
     const a=mkKey(pt.x-240,pt.y-60);
+    saveHistory(); annotations.push(a); selected=a.id;
+    setTool('select'); render();
+    return;
+  }
+
+  // ── SUMMARY TABLE ──
+  if(tool==='summary'){
+    const a=mkSummary(pt.x - SUMMARY_W_DEFAULT/2, pt.y - 40);
+    saveHistory(); annotations.push(a); selected=a.id;
+    setTool('select'); render();
+    return;
+  }
+
+  // ── COMPASS ROSE ──
+  if(tool==='compass'){
+    const a=mkCompass(pt.x, pt.y);
     saveHistory(); annotations.push(a); selected=a.id;
     setTool('select'); render();
     return;
@@ -1775,6 +2562,58 @@ function onMouseMove(e){
   // Drag vertex handle
   if(dragHandle>=0&&dragAnn){
     dragAnn.points[dragHandle]={x:pt.x,y:pt.y};
+    render(); return;
+  }
+
+  // Drag resize handle (manometer / key / compass bottom-right corner)
+  if(resizingAnn && resizeOrig && resizeStart){
+    const a = resizingAnn;
+    if(a.type === 'manometer'){
+      // Maintain aspect ratio based on the original (MANO_W : MANO_H)
+      const ratio = MANO_H / MANO_W;
+      const wByX  = pt.x - a.x;
+      const wByY  = (pt.y - a.y) / ratio;
+      const newW  = Math.max(40, Math.max(wByX, wByY));
+      a.w = newW;
+      a.h = newW * ratio;
+      // Move connected polyline endpoints to follow the new port positions
+      for(const c of connections.filter(c=>c.manoId===a.id)){
+        const line=annotations.find(l=>l.id===c.lineId);
+        if(!line||!line.points) continue;
+        const epIdx = c.ep===0 ? 0 : line.points.length-1;
+        const port  = getPort(a, c.port);
+        if(port && line.points[epIdx]){
+          line.points[epIdx] = {x:port.x, y:port.y};
+        }
+      }
+    } else if(a.type === 'key'){
+      // Width drives the sf scale factor; height is computed from getKeyHeight
+      a.w = Math.max(KEY_W_MIN, pt.x - a.x);
+    } else if(a.type === 'callout'){
+      // Width drives sf; height auto-fits text via getCalloutHeight()
+      a.w = Math.max(CALLOUT_W_MIN, pt.x - a.x);
+    } else if(a.type === 'summary'){
+      // Width drives sf; height recomputed from the current annotation data
+      a.w = Math.max(SUMMARY_W_MIN, pt.x - a.x);
+    } else if(a.type === 'compass'){
+      // Drag distance from center determines radius (and thus overall size).
+      const dx = pt.x - a.cx, dy = pt.y - a.cy;
+      a.r = Math.max(COMPASS_R_MIN, Math.max(Math.abs(dx), Math.abs(dy)));
+    }
+    render(); return;
+  }
+
+  // Drag compass rotation handle
+  if(rotatingAnn){
+    const a = rotatingAnn;
+    const curAng = Math.atan2(pt.y - a.cy, pt.x - a.cx);
+    let newRot = rotateOrig + (curAng - rotateStartAng);
+    // Shift-snap to 15° increments for precision alignment
+    if(shiftDown){
+      const step = Math.PI/12;
+      newRot = Math.round(newRot/step)*step;
+    }
+    a.rot = newRot;
     render(); return;
   }
 
@@ -1803,10 +2642,12 @@ function onMouseMove(e){
       }
     } else if(a.type==='callout'){
       a.x=orig.x+dx; a.y=orig.y+dy; a.lx=orig.lx+dx; a.ly=orig.ly+dy;
-    } else if(a.type==='rfi'){
-      a.x=orig.x+dx; a.y=orig.y+dy;
     } else if(a.type==='key'){
       a.x=orig.x+dx; a.y=orig.y+dy;
+    } else if(a.type==='summary'){
+      a.x=orig.x+dx; a.y=orig.y+dy;
+    } else if(a.type==='compass'){
+      a.cx=orig.cx+dx; a.cy=orig.cy+dy;
     }
     render(); return;
   }
@@ -1831,6 +2672,34 @@ function onMouseMove(e){
   // Update edge-pan velocity
   updateEdgePan(cv.x, cv.y);
 
+  // Hover tracking for line/boundary label chips (only when in select mode and not busy)
+  if(tool==='select' && !panning && !dragging && !drawing && !resizingAnn && !rotatingAnn){
+    const hit = findHit(pt.x, pt.y);
+    const newHover = (hit && (hit.type==='boundary'||hit.type==='fan'||hit.type==='extRef'||hit.type==='intRef'))
+      ? hit.id : null;
+    if(newHover !== hoveredId){ hoveredId = newHover; }
+  } else if(hoveredId){
+    hoveredId = null;
+  }
+
+  // Cursor hint: NWSE-resize when hovering the BR corner handle of a selected manometer/key/compass/callout/summary
+  if(tool==='select' && selected && !panning && !dragging && !resizingAnn && !rotatingAnn){
+    const sa=annotations.find(a=>a.id===selected);
+    if(sa && (sa.type==='manometer'||sa.type==='key'||sa.type==='compass'||sa.type==='callout'||sa.type==='summary')){
+      let bx, by;
+      if(sa.type==='key'){ bx=sa.x+sa.w; by=sa.y+getKeyHeight(sa); }
+      else if(sa.type==='compass'){ bx=sa.cx+sa.r; by=sa.cy+sa.r; }
+      else if(sa.type==='callout'){ bx=sa.x+sa.w; by=sa.y+getCalloutHeight(sa); }
+      else if(sa.type==='summary'){ bx=sa.x+sa.w; by=sa.y+getSummaryHeight(sa); }
+      else { bx=sa.x+sa.w; by=sa.y+sa.h; }
+      if(ptInResizeHandle(pt.x, pt.y, bx, by)){
+        canvas.className='cur-nwse';
+      } else if(canvas.className==='cur-nwse'){
+        canvas.className='cur-select';
+      }
+    }
+  }
+
   render();
 }
 
@@ -1838,6 +2707,8 @@ function onMouseUp(e){
   if(panning){ panning=false; canvas.classList.remove('cur-panning'); render(); return; }
   if(dragLeader){ dragLeader=false; dragAnn=null; render(); return; }
   if(dragHandle>=0){ dragHandle=-1; dragAnn=null; render(); return; }
+  if(resizingAnn){ resizingAnn=null; resizeOrig=null; resizeStart=null; resizeLineSnaps={}; render(); return; }
+  if(rotatingAnn){ rotatingAnn=null; rotateOrig=0; rotateStartAng=0; render(); return; }
   if(dragging){ dragging=false; dragAnn=null; dragOrigin=null; render(); return; }
 
   const cv=getEvtCanvas(e);
@@ -1874,15 +2745,24 @@ function onDblClick(e){
   if(tool==='select'){
     const hit=findHit(pt.x,pt.y);
     if(!hit) return;
-    let field,val;
-    if(hit.type==='manometer'){field='serial';val=hit.serial;}
-    else if(hit.type==='callout'){field='text';val=hit.text;}
-    else if(hit.type==='rfi'){field='label';val=hit.label;}
-    if(field){
+    if(hit.type==='manometer'){
       selected=hit.id;
       const bb=getBBox(hit);
       const sc=toCanvas(bb.x+bb.w/2,bb.y+bb.h/2);
-      openEditor(hit.id,field,sc.x,sc.y,val);
+      openEditor(hit.id,'serial',sc.x,sc.y,hit.serial||'',null,null,'Serial');
+    } else if(hit.type==='callout'){
+      selected=hit.id;
+      const bb=getBBox(hit);
+      const sc=toCanvas(bb.x+bb.w/2,bb.y+bb.h/2);
+      openEditor(hit.id,'text',sc.x,sc.y,hit.text||'',null,null,'Note');
+    } else if(hit.type==='boundary'){
+      selected=hit.id;
+      const sc=lineLabelCanvasPos(hit);
+      openEditor(hit.id,'label',sc.x,sc.y,hit.label||'',null,null,'Label');
+    } else if(hit.type==='fan'||hit.type==='extRef'||hit.type==='intRef'){
+      selected=hit.id;
+      const sc=lineLabelCanvasPos(hit);
+      openEditor(hit.id,'label',sc.x,sc.y,hit.label||'','location',hit.location||'','Label');
     }
   }
 }
@@ -1903,7 +2783,8 @@ const EDGE_MAX_SPD = 5;    // max screen px per frame
 
 function updateEdgePan(sx, sy){
   if(!drawing){ edgePanVx=0; edgePanVy=0; return; }
-  const W=canvas.width, H=canvas.height;
+  // Work in logical pixels — sx/sy come from getEvtCanvas (CSS pixels).
+  const W=canvas.width/dpr, H=canvas.height/dpr;
   const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
   edgePanVx = sx<EDGE_ZONE       ? -EDGE_MAX_SPD*clamp((EDGE_ZONE-sx)/EDGE_ZONE,0,1)
             : sx>W-EDGE_ZONE     ?  EDGE_MAX_SPD*clamp((sx-(W-EDGE_ZONE))/EDGE_ZONE,0,1)
@@ -1945,8 +2826,9 @@ document.addEventListener('keydown',e=>{
   if(e.key==='PageDown'){e.preventDefault(); goToPage(pageIdx+1);}
   if(e.key==='Escape') cancelDrawing();
   const shortcuts={'1':'select','2':'boundary','3':'fan','4':'extRef',
-                   '5':'intRef','6':'seal','7':'manometer','8':'callout','9':'rfi','0':'key'};
-  if(shortcuts[e.key]) setTool(shortcuts[e.key]);
+                   '5':'intRef','6':'seal','7':'manometer','8':'callout','0':'key',
+                   's':'summary','S':'summary','c':'compass','C':'compass'};
+  if(shortcuts[e.key] && !e.ctrlKey && !e.metaKey) setTool(shortcuts[e.key]);
 });
 document.addEventListener('keyup',e=>{
   if(e.key===' '){spaceDown=false;if(!panning){canvas.classList.remove('cur-pan');updateCursor();}}
@@ -2068,12 +2950,13 @@ async function rotatePDF(){
       [a.w, a.h] = [a.h, a.w];
       const nl = rotPt(a.lx, a.ly);
       a.lx = nl.x; a.ly = nl.y;
-    } else if(a.type==='rfi'){
-      const np = rotPt(a.x, a.y);
-      a.x = np.x; a.y = np.y;
     } else if(a.type==='key'){
       const kh = getKeyHeight(a);
       const nx = oldH - a.y - kh, ny = a.x;
+      a.x = nx; a.y = ny;
+    } else if(a.type==='summary'){
+      const sh = getSummaryHeight(a);
+      const nx = oldH - a.y - sh, ny = a.x;
       a.x = nx; a.y = ny;
     }
   }
@@ -2082,6 +2965,87 @@ async function rotatePDF(){
   [pdfW, pdfH] = [pdfH, pdfW];
   fitToWindow();
   render();
+}
+
+// Render a standalone Component Summary as its own page.
+// Aggregates labeled content from every page in pageData so the export
+// summary reflects the whole project, not just whichever page was visible.
+// Returns null if the project has no labeled components.
+function renderSummaryPage(opts){
+  opts = opts || {};
+  // Collect across all pages
+  const allAnns = [];
+  const allConns = [];
+  for(const p of pageData){
+    for(const a of (p.annotations||[])) allAnns.push(a);
+    for(const c of (p.connections||[])) allConns.push(c);
+  }
+  // Snapshot current page's live edits into pageData first
+  persistCurrentPage();
+  const s = buildSummary(allAnns, allConns);
+  if(!summaryHasContent(s)) return null;
+
+  // Page layout: letter-ish portrait at the same pixel density as the drawings
+  // (so the appended page reads at the same print scale). Target width matches
+  // the first drawing's width for visual consistency.
+  const targetW = opts.width || (pageData[0] ? pageData[0].w : 1700);
+  const marginX = Math.round(targetW * 0.06);
+  const tableW  = targetW - marginX*2;
+  const sf      = tableW / SUMMARY_W_DEFAULT;
+
+  // Measure height using the same logic, but inject the aggregated summary
+  const measure = (()=>{
+    let h = SUM_HDR*sf + SUM_PAD*sf;
+    if(s.manos.length){
+      h += SUM_SECT_HDR*sf + SUM_COL_HDR*sf + s.manos.length*4*SUM_ROW*sf + SUM_GAP*sf;
+    }
+    const lineSect=(rows)=>rows.length ? (SUM_SECT_HDR*sf + SUM_COL_HDR*sf + rows.length*SUM_ROW*sf + SUM_GAP*sf) : 0;
+    h += lineSect(s.fans);
+    h += lineSect(s.extRefs);
+    h += lineSect(s.intRefs);
+    if(s.boundaries.length > 1){
+      h += SUM_SECT_HDR*sf + SUM_COL_HDR*sf + s.boundaries.length*SUM_ROW*sf + SUM_GAP*sf;
+    }
+    return h;
+  })();
+  const headerH = Math.round(60 * sf);
+  const footerH = Math.round(34 * sf);
+  const pagePad = Math.round(40 * sf);
+  const pageH   = Math.round(headerH + measure + footerH + pagePad*2);
+
+  const off = document.createElement('canvas');
+  off.width = targetW; off.height = pageH;
+  const c = off.getContext('2d');
+  // White background
+  c.fillStyle='#ffffff'; c.fillRect(0,0,targetW,pageH);
+
+  // Header
+  c.fillStyle='#1a1a2e';
+  c.font = `bold ${22*sf}px Arial`;
+  c.textAlign='left'; c.textBaseline='top';
+  c.fillText('Airtightness Test Plan — Component Summary', marginX, Math.round(pagePad));
+  c.fillStyle='#666';
+  c.font = `${12*sf}px Arial`;
+  const projLabel = (projectName.textContent||'').trim() || 'Untitled Project';
+  c.fillText(projLabel, marginX, Math.round(pagePad + 30*sf));
+
+  // Table — we need to render using the aggregated dataset, not the page-local
+  // one drawSummaryTable pulls via buildSummary(). Temporarily redirect the
+  // live refs to the aggregated set.
+  const savedA=annotations, savedC=connections;
+  annotations = allAnns; connections = allConns;
+  try {
+    drawSummaryTable(c, marginX, Math.round(pagePad + headerH), tableW, sf);
+  } finally {
+    annotations=savedA; connections=savedC;
+  }
+
+  // Footer
+  c.fillStyle='#999';
+  c.font = `italic ${10*sf}px Arial`;
+  c.textAlign='right'; c.textBaseline='bottom';
+  c.fillText('Generated by GMEC Airtightness Test Planner', targetW - marginX, pageH - pagePad/2);
+  return off;
 }
 
 // Render a single page (by index into pageData) with its annotations to an offscreen canvas.
@@ -2095,14 +3059,13 @@ function renderPageToCanvas(idx){
   const c = offC.getContext('2d');
   c.drawImage(p.bitmap, 0, 0);
   // Temporarily point the global annotation/connection refs + pdf dims at this page
-  // so drawAnnotation() and drawExportLegend() use the correct data.
+  // so drawAnnotation() uses the correct data.
   const savedScale=scale, savedOffX=offX, savedOffY=offY;
   const savedA=annotations, savedC=connections, savedW=pdfW, savedH=pdfH;
   scale=1; offX=0; offY=0;
   annotations = p.annotations; connections = p.connections;
   pdfW = p.w; pdfH = p.h;
   for(const a of annotations) drawAnnotation(c,a,false);
-  drawExportLegend(c);
   scale=savedScale; offX=savedOffX; offY=savedOffY;
   annotations=savedA; connections=savedC; pdfW=savedW; pdfH=savedH;
   return offC;
@@ -2123,6 +3086,16 @@ function exportPNG(){
   link.download = baseName() + suffix + '-markup.png';
   link.href = offC.toDataURL('image/png');
   link.click();
+  // Also save a separate component-summary PNG if there's labeled content.
+  // Kept as a second file so the drawing PNG stays clean at its native size.
+  const summaryOff = renderSummaryPage();
+  if(summaryOff){
+    const sLink = document.createElement('a');
+    sLink.download = baseName() + '-component-summary.png';
+    sLink.href = summaryOff.toDataURL('image/png');
+    // Slight delay so browsers don't collapse the two downloads
+    setTimeout(()=>sLink.click(), 80);
+  }
 }
 
 async function exportPDF(){
@@ -2133,15 +3106,12 @@ async function exportPDF(){
   }
   const {jsPDF} = window.jspdf;
   let doc = null;
-  for(let i=0; i<pageData.length; i++){
-    const off = renderPageToCanvas(i);
-    if(!off) continue;
-    const wPts = off.width  * 72/150;   // print at ~150 dpi target
+  const addCanvasPage = (off, fmt) => {
+    const wPts = off.width  * 72/150;
     const hPts = off.height * 72/150;
     const orientation = wPts > hPts ? 'l' : 'p';
-    if(i===0){
+    if(!doc){
       doc = new jsPDF({orientation, unit:'pt', format:[wPts,hPts], compress:true});
-      // Embed attribution in PDF metadata so it survives redistribution.
       try {
         doc.setProperties({
           title:    baseName() + ' — Airtightness Test Plan',
@@ -2154,69 +3124,20 @@ async function exportPDF(){
     } else {
       doc.addPage([wPts,hPts], orientation);
     }
-    const dataUrl = off.toDataURL('image/jpeg', 0.85);  // JPEG keeps file size reasonable
-    doc.addImage(dataUrl, 'JPEG', 0, 0, wPts, hPts, undefined, 'FAST');
+    const mime = fmt==='png' ? 'image/png' : 'image/jpeg';
+    const quality = fmt==='png' ? undefined : 0.85;
+    const dataUrl = off.toDataURL(mime, quality);
+    doc.addImage(dataUrl, fmt==='png' ? 'PNG' : 'JPEG', 0, 0, wPts, hPts, undefined, 'FAST');
+  };
+  for(let i=0; i<pageData.length; i++){
+    const off = renderPageToCanvas(i);
+    if(!off) continue;
+    addCanvasPage(off, 'jpeg');
   }
-  doc.save(baseName() + '-markup.pdf');
-}
-
-function drawExportLegend(c){
-  const types=[...new Set(annotations.map(a=>a.type))];
-  if(!types.length) return;
-
-  const items=[];
-  if(types.includes('boundary'))  items.push({style:'line',color:'#9b27af',w:3.5, label:'Tested Boundary'});
-  if(types.includes('fan'))       items.push({style:'line',color:'#e53935',w:3.5, label:'Blower Door Fan'});
-  if(types.includes('extRef'))    items.push({style:'line',color:'#2e7d32',w:3.5, label:'Envelope Reference (Ext)'});
-  if(types.includes('intRef'))    items.push({style:'line',color:'#1565c0',w:3.5, label:'Envelope Reference (Int)',arrow:true});
-  if(types.includes('seal'))      items.push({style:'dashed',color:'#e53935',w:2, label:'Temporary Seal Area'});
-  if(types.includes('manometer')) items.push({style:'box',  color:'#9b27af',fill:'#f3e5f5',label:'Manometer'});
-  if(types.includes('callout'))   items.push({style:'box',  color:'#f9a825',fill:'#fff9c4',label:'Text Callout'});
-  if(types.includes('rfi'))       items.push({style:'badge',color:'#e53935',       label:'RFI / Issue Tag'});
-
-  const PH=30,PW=300,HDR=46,PAD=18;
-  const BH=HDR+items.length*PH+PAD;
-  const BX=pdfW-PW-28, BY=pdfH-BH-28;
-
-  // Drop shadow
-  c.fillStyle='rgba(0,0,0,0.1)'; c.fillRect(BX+5,BY+5,PW,BH);
-  c.fillStyle='white'; c.strokeStyle='#000'; c.lineWidth=2;
-  c.fillRect(BX,BY,PW,BH); c.strokeRect(BX,BY,PW,BH);
-  c.beginPath(); c.moveTo(BX,BY+HDR); c.lineTo(BX+PW,BY+HDR); c.stroke();
-
-  c.fillStyle='#000'; c.font='bold 18px Arial';
-  c.textAlign='left'; c.textBaseline='middle';
-  c.fillText('KEY:', BX+16, BY+HDR/2);
-
-  items.forEach((item,i)=>{
-    const iy=BY+HDR+(i+0.5)*PH;
-    const sx=BX+14, ex=BX+56;
-    if(item.style==='line'||item.style==='dashed'){
-      c.strokeStyle=item.color; c.lineWidth=item.w; c.lineCap='round';
-      if(item.style==='dashed') c.setLineDash([6,4]);
-      if(item.label==='Tested Boundary'){ c.shadowColor='#ff9800'; c.shadowBlur=10; }
-      c.beginPath(); c.moveTo(sx,iy); c.lineTo(ex,iy); c.stroke();
-      c.shadowBlur=0;
-      c.setLineDash([]); c.lineCap='butt';
-      if(item.arrow){
-        c.fillStyle=item.color; c.beginPath();
-        c.moveTo(ex,iy); c.lineTo(ex-11,iy-4); c.lineTo(ex-11,iy+4); c.closePath(); c.fill();
-      }
-    } else if(item.style==='box'){
-      c.fillStyle=item.fill; c.strokeStyle=item.color; c.lineWidth=2;
-      c.fillRect(sx,iy-10,42,20); c.strokeRect(sx,iy-10,42,20);
-      c.fillStyle=item.color; c.font='bold 8px Arial'; c.textAlign='center';
-      c.fillText('DG1000',sx+21,iy);
-    } else if(item.style==='badge'){
-      c.fillStyle=item.color; c.beginPath();
-      c.roundRect(sx,iy-10,42,20,4); c.fill();
-      c.fillStyle='white'; c.font='bold 9px Arial'; c.textAlign='center';
-      c.fillText('RFI',sx+21,iy);
-    }
-    c.fillStyle='#000'; c.font='bold 14px Arial';
-    c.textAlign='left'; c.textBaseline='middle';
-    c.fillText('= '+item.label, BX+66, iy);
-  });
+  // Auto-append a Component Summary page at the end if there's any labeled content.
+  const summaryOff = renderSummaryPage();
+  if(summaryOff) addCanvasPage(summaryOff, 'png');  // PNG keeps table crisp
+  if(doc) doc.save(baseName() + '-markup.pdf');
 }
 
 // ─────────────────────────────────────────
@@ -2332,7 +3253,13 @@ fileInput.addEventListener('change',e=>{
 // ─────────────────────────────────────────
 new ResizeObserver(()=>{
   const r=canvasWrap.getBoundingClientRect();
-  canvas.width=r.width; canvas.height=r.height;
+  // Refresh dpr — can change if user drags browser to a different-DPI monitor
+  // or changes system zoom.
+  dpr = window.devicePixelRatio || 1;
+  canvas.width  = Math.round(r.width  * dpr);
+  canvas.height = Math.round(r.height * dpr);
+  canvas.style.width  = r.width  + 'px';
+  canvas.style.height = r.height + 'px';
   render();
 }).observe(canvasWrap);
 
@@ -2345,8 +3272,12 @@ canvasWrap.addEventListener('drop',e=>{
 });
 
 // ── INIT ──
+dpr = window.devicePixelRatio || 1;
 const r=canvasWrap.getBoundingClientRect();
-canvas.width=r.width; canvas.height=r.height;
+canvas.width  = Math.round(r.width  * dpr);
+canvas.height = Math.round(r.height * dpr);
+canvas.style.width  = r.width  + 'px';
+canvas.style.height = r.height + 'px';
 setTool('select');
 render();
 </script>
